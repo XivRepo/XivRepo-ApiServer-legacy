@@ -1,8 +1,8 @@
 ## Contributing
 
-Contributions to labrinth are welcome! However, we do have a couple dependencies that you need to get up and running. 
+Contributions to The XIV Repository api server are welcome! However, we do have a couple dependencies that you need to get up and running. 
 
-We reccomend using [Docker](https://www.docker.com/) for setting up your dev enviroment. If you have Docker and docker-compose installed, you may run:
+We recomend using [Docker](https://www.docker.com/) for setting up your dev enviroment. If you have Docker and docker-compose installed, you may run:
 ```sh
 docker-compose up
 ```
