@@ -2,7 +2,7 @@ use super::ids::{ModId, UserId};
 
 pub struct User {
     pub id: UserId,
-    pub github_id: Option<i64>,
+    pub discord_id: Option<String>,
     pub username: String,
     pub name: Option<String>,
     pub email: Option<String>,
@@ -20,7 +20,7 @@ impl User {
         sqlx::query!(
             "
             INSERT INTO users (
-                id, github_id, username, name, email,
+                id, discord_id, username, name, email,
                 avatar_url, bio, created
             )
             VALUES (
@@ -29,7 +29,7 @@ impl User {
             )
             ",
             self.id as UserId,
-            self.github_id,
+            self.discord_id,
             &self.username,
             self.name.as_ref(),
             self.email.as_ref(),
@@ -48,7 +48,7 @@ impl User {
     {
         let result = sqlx::query!(
             "
-            SELECT u.github_id, u.name, u.email,
+            SELECT u.discord_id, u.name, u.email,
                 u.avatar_url, u.username, u.bio,
                 u.created, u.role
             FROM users u
@@ -62,7 +62,7 @@ impl User {
         if let Some(row) = result {
             Ok(Some(User {
                 id,
-                github_id: row.github_id,
+                discord_id: row.discord_id,
                 name: row.name,
                 email: row.email,
                 avatar_url: row.avatar_url,
@@ -76,8 +76,8 @@ impl User {
         }
     }
 
-    pub async fn get_from_github_id<'a, 'b, E>(
-        github_id: u64,
+    pub async fn get_from_discord_id<'a, 'b, E>(
+        discord_id: String,
         executor: E,
     ) -> Result<Option<Self>, sqlx::error::Error>
     where
@@ -89,9 +89,9 @@ impl User {
                 u.avatar_url, u.username, u.bio,
                 u.created, u.role
             FROM users u
-            WHERE u.github_id = $1
+            WHERE u.discord_id = $1
             ",
-            github_id as i64,
+            discord_id,
         )
         .fetch_optional(executor)
         .await?;
@@ -99,7 +99,7 @@ impl User {
         if let Some(row) = result {
             Ok(Some(User {
                 id: UserId(row.id),
-                github_id: Some(github_id as i64),
+                discord_id: Some(discord_id),
                 name: row.name,
                 email: row.email,
                 avatar_url: row.avatar_url,
@@ -122,7 +122,7 @@ impl User {
     {
         let result = sqlx::query!(
             "
-            SELECT u.id, u.github_id, u.name, u.email,
+            SELECT u.id, u.discord_id, u.name, u.email,
                 u.avatar_url, u.bio,
                 u.created, u.role
             FROM users u
@@ -136,7 +136,7 @@ impl User {
         if let Some(row) = result {
             Ok(Some(User {
                 id: UserId(row.id),
-                github_id: row.github_id,
+                discord_id: row.discord_id,
                 name: row.name,
                 email: row.email,
                 avatar_url: row.avatar_url,
@@ -159,7 +159,7 @@ impl User {
         let user_ids_parsed: Vec<i64> = user_ids.into_iter().map(|x| x.0).collect();
         let users = sqlx::query!(
             "
-            SELECT u.id, u.github_id, u.name, u.email,
+            SELECT u.id, u.discord_id, u.name, u.email,
                 u.avatar_url, u.username, u.bio,
                 u.created, u.role FROM users u
             WHERE u.id IN (SELECT * FROM UNNEST($1::bigint[]))
@@ -170,7 +170,7 @@ impl User {
         .try_filter_map(|e| async {
             Ok(e.right().map(|u| User {
                 id: UserId(u.id),
-                github_id: u.github_id,
+                discord_id: u.discord_id,
                 name: u.name,
                 email: u.email,
                 avatar_url: u.avatar_url,

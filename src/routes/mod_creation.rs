@@ -623,22 +623,6 @@ async fn create_initial_version(
             .await?
             .expect("Release Channel not found in database");
 
-    let mut game_versions = Vec::with_capacity(version_data.game_versions.len());
-    for v in &version_data.game_versions {
-        let id = models::categories::GameVersion::get_id(&v.0, &mut *transaction)
-            .await?
-            .ok_or_else(|| CreateError::InvalidGameVersion(v.0.clone()))?;
-        game_versions.push(id);
-    }
-
-    let mut loaders = Vec::with_capacity(version_data.loaders.len());
-    for l in &version_data.loaders {
-        let id = models::categories::Loader::get_id(&l.0, &mut *transaction)
-            .await?
-            .ok_or_else(|| CreateError::InvalidLoader(l.0.clone()))?;
-        loaders.push(id);
-    }
-
     let dependencies = version_data
         .dependencies
         .iter()
@@ -657,8 +641,6 @@ async fn create_initial_version(
             .unwrap_or_else(|| "".to_string()),
         files: Vec::new(),
         dependencies,
-        game_versions,
-        loaders,
         release_channel,
         featured: version_data.featured,
     };

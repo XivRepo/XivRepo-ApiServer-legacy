@@ -105,17 +105,7 @@ async fn main() -> std::io::Result<()> {
 
     let storage_backend = dotenv::var("STORAGE_BACKEND").unwrap_or_else(|_| "local".to_string());
 
-    let file_host: Arc<dyn file_hosting::FileHost + Send + Sync> = if storage_backend == "backblaze"
-    {
-        Arc::new(
-            file_hosting::BackblazeHost::new(
-                &dotenv::var("BACKBLAZE_KEY_ID").unwrap(),
-                &dotenv::var("BACKBLAZE_KEY").unwrap(),
-                &dotenv::var("BACKBLAZE_BUCKET_ID").unwrap(),
-            )
-            .await,
-        )
-    } else if storage_backend == "s3" {
+    let file_host: Arc<dyn file_hosting::FileHost + Send + Sync> = if storage_backend == "s3" {
         Arc::new(
             S3Host::new(
                 &*dotenv::var("S3_BUCKET_NAME").unwrap(),
@@ -358,11 +348,7 @@ fn check_env_vars() -> bool {
 
     let storage_backend = dotenv::var("STORAGE_BACKEND").ok();
 
-    if storage_backend.as_deref() == Some("backblaze") {
-        failed |= check_var::<String>("BACKBLAZE_KEY_ID");
-        failed |= check_var::<String>("BACKBLAZE_KEY");
-        failed |= check_var::<String>("BACKBLAZE_BUCKET_ID");
-    } else if storage_backend.as_deref() == Some("s3") {
+    if storage_backend.as_deref() == Some("s3") {
         failed |= check_var::<String>("S3_ACCESS_TOKEN");
         failed |= check_var::<String>("S3_SECRET");
         failed |= check_var::<String>("S3_URL");
@@ -379,8 +365,8 @@ fn check_env_vars() -> bool {
 
     failed |= check_var::<usize>("VERSION_INDEX_INTERVAL");
 
-    failed |= check_var::<String>("GITHUB_CLIENT_ID");
-    failed |= check_var::<String>("GITHUB_CLIENT_SECRET");
+    failed |= check_var::<String>("DISCORD_CLIENT_ID");
+    failed |= check_var::<String>("DISCORD_CLIENT_SECRET");
 
     failed
 }

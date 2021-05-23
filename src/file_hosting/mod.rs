@@ -1,11 +1,9 @@
 use async_trait::async_trait;
 use thiserror::Error;
 
-mod backblaze;
 mod mock;
 mod s3_host;
 
-pub use backblaze::BackblazeHost;
 pub use mock::MockHost;
 use s3::creds::AwsCredsError;
 use s3::S3Error;

@@ -12,31 +12,32 @@ pub enum AuthenticationError {
     DatabaseError(#[from] crate::database::models::DatabaseError),
     #[error("Error while parsing JSON: {0}")]
     SerDeError(#[from] serde_json::Error),
-    #[error("Error while communicating to GitHub OAuth2: {0}")]
+    #[error("Error while communicating to Discord OAuth2: {0}")]
     GithubError(#[from] reqwest::Error),
     #[error("Invalid Authentication Credentials")]
     InvalidCredentialsError,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct GitHubUser {
-    pub login: String,
-    pub id: u64,
-    pub avatar_url: String,
-    pub name: Option<String>,
+pub struct DiscordUser {
+    pub id: String,
+    pub username: String,
+    pub avatar: String,
+    pub discriminator: String,
+    pub locale: String,
     pub email: Option<String>,
-    pub bio: Option<String>,
+    pub verified: bool,
 }
 
-pub async fn get_github_user_from_token(
+pub async fn get_discord_user_from_token(
     access_token: &str,
-) -> Result<GitHubUser, AuthenticationError> {
+) -> Result<DiscordUser, AuthenticationError> {
     Ok(reqwest::Client::new()
-        .get("https://api.github.com/user")
+        .get("https://discord.com/api/users/@me")
         .header(reqwest::header::USER_AGENT, "Modrinth")
         .header(
             reqwest::header::AUTHORIZATION,
-            format!("token {}", access_token),
+            format!("Bearer {}", access_token),
         )
         .send()
         .await?
@@ -51,14 +52,14 @@ pub async fn get_user_from_token<'a, 'b, E>(
 where
     E: sqlx::Executor<'a, Database = sqlx::Postgres>,
 {
-    let github_user = get_github_user_from_token(access_token).await?;
+    let discord_user = get_discord_user_from_token(access_token).await?;
 
-    let res = models::User::get_from_github_id(github_user.id, executor).await?;
+    let res = models::User::get_from_discord_id(discord_user.id, executor).await?;
 
     match res {
         Some(result) => Ok(User {
             id: UserId::from(result.id),
-            github_id: result.github_id.map(|i| i as u64),
+            discord_id: result.discord_id,
             username: result.username,
             name: result.name,
             email: result.email,

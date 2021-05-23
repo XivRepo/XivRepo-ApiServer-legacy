@@ -1,4 +1,6 @@
-use crate::auth::get_github_user_from_token;
+use std::collections::HashMap;
+
+use crate::auth::get_discord_user_from_token;
 use crate::database::models::{generate_state_id, User};
 use crate::models::error::ApiError;
 use crate::models::ids::base62_impl::{parse_base62, to_base62};
@@ -27,7 +29,7 @@ pub enum AuthorizationError {
     DatabaseError(#[from] crate::database::models::DatabaseError),
     #[error("Error while parsing JSON: {0}")]
     SerDeError(#[from] serde_json::Error),
-    #[error("Error while communicating to GitHub OAuth2: {0}")]
+    #[error("Error while communicating to Discord OAuth2: {0}")]
     GithubError(#[from] reqwest::Error),
     #[error("Invalid Authentication credentials")]
     InvalidCredentialsError,
@@ -57,7 +59,7 @@ impl actix_web::ResponseError for AuthorizationError {
                 AuthorizationError::SqlxDatabaseError(..) => "database_error",
                 AuthorizationError::DatabaseError(..) => "database_error",
                 AuthorizationError::SerDeError(..) => "invalid_input",
-                AuthorizationError::GithubError(..) => "github_error",
+                AuthorizationError::GithubError(..) => "discord_error",
                 AuthorizationError::InvalidCredentialsError => "invalid_credentials",
                 AuthorizationError::DecodingError(..) => "decoding_error",
                 AuthorizationError::AuthenticationError(..) => "authentication_error",
@@ -85,7 +87,7 @@ pub struct AccessToken {
     pub token_type: String,
 }
 
-//http://localhost:8000/api/v1/auth/init?url=https%3A%2F%2Fmodrinth.com%2Fmods
+//http://localhost:8000/api/v1/auth/init?url=siteurl
 #[get("init")]
 pub async fn init(
     Query(info): Query<AuthorizationInit>,
@@ -108,12 +110,14 @@ pub async fn init(
 
     transaction.commit().await?;
 
-    let client_id = dotenv::var("GITHUB_CLIENT_ID")?;
+    let client_id = dotenv::var("DISCORD_CLIENT_ID")?;
+    let redirect_uri = dotenv::var("DISCORD_REDIRECT_URI")?;
     let url = format!(
-        "https://github.com/login/oauth/authorize?client_id={}&state={}&scope={}",
+        "https://discord.com/api/oauth2/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}",
         client_id,
-        to_base62(state.0 as u64),
-        "read%3Auser"
+        redirect_uri,
+        "identify%20email",
+        to_base62(state.0 as u64)
     );
 
     Ok(HttpResponse::TemporaryRedirect()
@@ -156,25 +160,31 @@ pub async fn auth_callback(
     .execute(&mut *transaction)
     .await?;
 
-    let client_id = dotenv::var("GITHUB_CLIENT_ID")?;
-    let client_secret = dotenv::var("GITHUB_CLIENT_SECRET")?;
+    let client_id = dotenv::var("DISCORD_CLIENT_ID")?;
+    let client_secret = dotenv::var("DISCORD_CLIENT_SECRET")?;
+    let redirect_uri = dotenv::var("DISCORD_REDIRECT_URI")?;
 
-    let url = format!(
-        "https://github.com/login/oauth/access_token?client_id={}&client_secret={}&code={}",
-        client_id, client_secret, info.code
-    );
+    let url = format!("https://discord.com/api/v8/oauth2/token");
+
+    let mut params = HashMap::new();
+    params.insert("client_id", client_id);
+    params.insert("client_secret", client_secret);
+    params.insert("grant_type", "authorization_code".into());
+    params.insert("code", info.code);
+    params.insert("redirect_uri", redirect_uri);
 
     let token: AccessToken = reqwest::Client::new()
         .post(&url)
         .header(reqwest::header::ACCEPT, "application/json")
+        .form(&params)
         .send()
         .await?
         .json()
         .await?;
 
-    let user = get_github_user_from_token(&*token.access_token).await?;
+    let user = get_discord_user_from_token(&*token.access_token).await?;
 
-    let user_result = User::get_from_github_id(user.id, &mut *transaction).await?;
+    let user_result = User::get_from_discord_id(user.id.clone(), &mut *transaction).await?;
     match user_result {
         Some(x) => info!("{:?}", x.id),
         None => {
@@ -182,12 +192,12 @@ pub async fn auth_callback(
 
             User {
                 id: user_id,
-                github_id: Some(user.id as i64),
-                username: user.login,
-                name: user.name,
+                discord_id: Some(user.id.clone()),
+                username: user.username.clone(),
+                name: Some(user.username),
                 email: user.email,
-                avatar_url: Some(user.avatar_url),
-                bio: user.bio,
+                avatar_url: Some(format!("https://cdn.discordapp.com/avatars/{}/{}",user.id, user.avatar)),
+                bio: None,
                 created: Utc::now(),
                 role: Role::Developer.to_string(),
             }

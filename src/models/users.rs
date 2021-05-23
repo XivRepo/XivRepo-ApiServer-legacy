@@ -11,7 +11,7 @@ pub const DELETED_USER: UserId = UserId(127155982985829);
 #[derive(Serialize, Deserialize)]
 pub struct User {
     pub id: UserId,
-    pub github_id: Option<u64>,
+    pub discord_id: Option<String>,
     pub username: String,
     pub name: Option<String>,
     pub email: Option<String>,

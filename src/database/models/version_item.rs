@@ -11,8 +11,6 @@ pub struct VersionBuilder {
     pub changelog: String,
     pub files: Vec<VersionFileBuilder>,
     pub dependencies: Vec<(VersionId, String)>,
-    pub game_versions: Vec<GameVersionId>,
-    pub loaders: Vec<LoaderId>,
     pub release_channel: ChannelId,
     pub featured: bool,
 }
@@ -113,32 +111,6 @@ impl VersionBuilder {
                 self.version_id as VersionId,
                 dependency.0 as VersionId,
                 dependency.1,
-            )
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        for loader in self.loaders {
-            sqlx::query!(
-                "
-                INSERT INTO loaders_versions (loader_id, version_id)
-                VALUES ($1, $2)
-                ",
-                loader as LoaderId,
-                self.version_id as VersionId,
-            )
-            .execute(&mut *transaction)
-            .await?;
-        }
-
-        for game_version in self.game_versions {
-            sqlx::query!(
-                "
-                INSERT INTO game_versions_versions (game_version_id, joining_version_id)
-                VALUES ($1, $2)
-                ",
-                game_version as GameVersionId,
-                self.version_id as VersionId,
             )
             .execute(&mut *transaction)
             .await?;

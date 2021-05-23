@@ -23,9 +23,7 @@ pub struct InitialVersionData {
     pub version_title: String,
     pub version_body: Option<String>,
     pub dependencies: Vec<Dependency>,
-    pub game_versions: Vec<GameVersion>,
     pub release_channel: VersionType,
-    pub loaders: Vec<ModLoader>,
     pub featured: bool,
 }
 
@@ -57,15 +55,6 @@ pub fn check_version(version: &InitialVersionData) -> Result<(), CreateError> {
     if let Some(body) = &version.version_body {
         check_length(..65536, "version body", body)?;
     }
-
-    version
-        .game_versions
-        .iter()
-        .try_for_each(|v| check_length(1..=256, "game version", &v.0))?;
-    version
-        .loaders
-        .iter()
-        .try_for_each(|l| check_length(1..=256, "loader name", &l.0))?;
 
     Ok(())
 }
@@ -206,22 +195,6 @@ async fn version_create_inner(
             .await?
             .expect("Release channel not found in database");
 
-            let mut game_versions = Vec::with_capacity(version_create_data.game_versions.len());
-            for v in &version_create_data.game_versions {
-                let id = models::categories::GameVersion::get_id(&v.0, &mut *transaction)
-                    .await?
-                    .ok_or_else(|| CreateError::InvalidGameVersion(v.0.clone()))?;
-                game_versions.push(id);
-            }
-
-            let mut loaders = Vec::with_capacity(version_create_data.loaders.len());
-            for l in &version_create_data.loaders {
-                let id = models::categories::Loader::get_id(&l.0, &mut *transaction)
-                    .await?
-                    .ok_or_else(|| CreateError::InvalidLoader(l.0.clone()))?;
-                loaders.push(id);
-            }
-
             let dependencies = version_create_data
                 .dependencies
                 .iter()
@@ -240,8 +213,6 @@ async fn version_create_inner(
                     .unwrap_or_else(|| "".to_string()),
                 files: Vec::new(),
                 dependencies,
-                game_versions,
-                loaders,
                 release_channel,
                 featured: version_create_data.featured,
             });
@@ -351,9 +322,7 @@ async fn version_create_inner(
                 primary: file.primary,
             })
             .collect::<Vec<_>>(),
-        dependencies: version_data.dependencies,
-        game_versions: version_data.game_versions,
-        loaders: version_data.loaders,
+        dependencies: version_data.dependencies
     };
 
     builder.insert(transaction).await?;
@@ -582,8 +551,12 @@ pub async fn upload_file(
 // Currently we only support jar mods; this may change in the future (datapacks?)
 fn mod_file_type(ext: &str) -> Option<&str> {
     match ext {
-        "jar" => Some("application/java-archive"),
-        _ => None,
+        "zip"       => Some("application/zip"),
+        "tar.gz"    => Some("application/gzip"),
+        "rar"       => Some("application/vnd.rar"),
+        "7z"        => Some("application/x-7z-compressed"),
+        "ttmp2"     => Some("application/zip"),
+        _           => None,
     }
 }
 

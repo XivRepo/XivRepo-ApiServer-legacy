@@ -109,7 +109,7 @@ pub async fn user_get(
 fn convert_user(data: crate::database::models::user_item::User) -> crate::models::users::User {
     crate::models::users::User {
         id: data.id.into(),
-        github_id: data.github_id.map(|i| i as u64),
+        discord_id: data.discord_id,
         username: data.username,
         name: data.name,
         email: None,

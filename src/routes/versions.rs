@@ -203,16 +203,6 @@ fn convert_version(data: database::models::version_item::QueryVersion) -> models
                 dependency_type: DependencyType::from_str(&*d.1),
             })
             .collect(),
-        game_versions: data
-            .game_versions
-            .into_iter()
-            .map(models::mods::GameVersion)
-            .collect(),
-        loaders: data
-            .loaders
-            .into_iter()
-            .map(models::mods::ModLoader)
-            .collect(),
     }
 }
 
