@@ -1,12 +1,12 @@
 [package]
-name = "labrinth"
+name = "xivrepo"
 version = "0.1.0"
 #Team members, please add your emails and usernames
-authors = ["geometrically <jai.a@tuta.io>", "Redblueflame <contact@redblueflame.com>", "Aeledfyr <aeledfyr@gmail.com>", "Charalampos Fanoulis <yo@fanoulis.dev>", "AppleTheGolden <scotsbox@protonmail.com>"]
+authors = ["Yagi <koruten@gmail.com>","geometrically <jai.a@tuta.io>", "Redblueflame <contact@redblueflame.com>", "Aeledfyr <aeledfyr@gmail.com>", "Charalampos Fanoulis <yo@fanoulis.dev>", "AppleTheGolden <scotsbox@protonmail.com>"]
 edition = "2018"
 
 [[bin]]
-name = "labrinth"
+name = "xivrepo"
 path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -19,7 +19,7 @@ actix-multipart = "0.3.0"
 actix-cors = "0.4.1"
 actix-ratelimit = "0.3.0"
 
-meilisearch-sdk = "0.6.0"
+meilisearch-sdk = "0.8.0"
 reqwest = { version = "0.10.8", features = ["json"] }
 
 yaserde = "0.6.0"
@@ -30,7 +30,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_with = "1.5.1"
 chrono = { version = "0.4", features = ["serde"] }
-rand = "0.7.3"
+rand = "0.8.3"
 base64 = "0.13.0"
 sha1 = { version = "0.6.0", features = ["std"] }
 sha2 = "0.9.2"
@@ -42,6 +42,7 @@ log = "0.4.8"
 env_logger = "0.8.1"
 thiserror = "1.0.21"
 lazy_static = "1.4.0"
+slugify = "0.1.0"
 
 futures = "0.3.6"
 futures-timer = "3.0.2"

@@ -10,7 +10,7 @@ use actix_web::http::StatusCode;
 use actix_web::web::{scope, Data, Query, ServiceConfig};
 use actix_web::{get, HttpResponse};
 use chrono::Utc;
-use log::info;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use thiserror::Error;
@@ -76,8 +76,9 @@ pub struct AuthorizationInit {
 
 #[derive(Serialize, Deserialize)]
 pub struct Authorization {
-    pub code: String,
-    pub state: String,
+    pub code: Option<String>,
+    pub state: Option<String>,
+    pub error: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -113,7 +114,7 @@ pub async fn init(
     let client_id = dotenv::var("DISCORD_CLIENT_ID")?;
     let redirect_uri = dotenv::var("DISCORD_REDIRECT_URI")?;
     let url = format!(
-        "https://discord.com/api/oauth2/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}",
+        "https://discord.com/oauth2/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}",
         client_id,
         redirect_uri,
         "identify%20email",
@@ -131,86 +132,100 @@ pub async fn auth_callback(
     client: Data<PgPool>,
 ) -> Result<HttpResponse, AuthorizationError> {
     let mut transaction = client.begin().await?;
-    let state_id = parse_base62(&*info.state)?;
 
-    let result = sqlx::query!(
-        "
-            SELECT url,expires FROM states
-            WHERE id = $1
-            ",
-        state_id as i64
-    )
-    .fetch_one(&mut *transaction)
-    .await?;
+    if info.error.is_some() {
+        let error = info.error.unwrap();
+        warn!("Error authorizing Discord login : {}", error);
 
-    let now = Utc::now();
-    let duration = result.expires.signed_duration_since(now);
+        let home = dotenv::var("SITE_URL")?;
 
-    if duration.num_seconds() < 0 {
-        return Err(AuthorizationError::InvalidCredentialsError);
+        Ok(HttpResponse::TemporaryRedirect()
+            .header("Location", home)
+            .finish())
     }
+    else {
+        let state_id = parse_base62(&*info.state.unwrap())?;
 
-    sqlx::query!(
-        "
-            DELETE FROM states
-            WHERE id = $1
-            ",
-        state_id as i64
-    )
-    .execute(&mut *transaction)
-    .await?;
-
-    let client_id = dotenv::var("DISCORD_CLIENT_ID")?;
-    let client_secret = dotenv::var("DISCORD_CLIENT_SECRET")?;
-    let redirect_uri = dotenv::var("DISCORD_REDIRECT_URI")?;
-
-    let url = format!("https://discord.com/api/v8/oauth2/token");
-
-    let mut params = HashMap::new();
-    params.insert("client_id", client_id);
-    params.insert("client_secret", client_secret);
-    params.insert("grant_type", "authorization_code".into());
-    params.insert("code", info.code);
-    params.insert("redirect_uri", redirect_uri);
-
-    let token: AccessToken = reqwest::Client::new()
-        .post(&url)
-        .header(reqwest::header::ACCEPT, "application/json")
-        .form(&params)
-        .send()
-        .await?
-        .json()
+        let result = sqlx::query!(
+            "
+                SELECT url,expires FROM states
+                WHERE id = $1
+                ",
+            state_id as i64
+        )
+        .fetch_one(&mut *transaction)
         .await?;
 
-    let user = get_discord_user_from_token(&*token.access_token).await?;
+        let now = Utc::now();
+        let duration = result.expires.signed_duration_since(now);
 
-    let user_result = User::get_from_discord_id(user.id.clone(), &mut *transaction).await?;
-    match user_result {
-        Some(x) => info!("{:?}", x.id),
-        None => {
-            let user_id = crate::database::models::generate_user_id(&mut transaction).await?;
-
-            User {
-                id: user_id,
-                discord_id: Some(user.id.clone()),
-                username: user.username.clone(),
-                name: Some(user.username),
-                email: user.email,
-                avatar_url: Some(format!("https://cdn.discordapp.com/avatars/{}/{}",user.id, user.avatar)),
-                bio: None,
-                created: Utc::now(),
-                role: Role::Developer.to_string(),
-            }
-            .insert(&mut transaction)
-            .await?;
+        if duration.num_seconds() < 0 {
+            return Err(AuthorizationError::InvalidCredentialsError);
         }
+
+        sqlx::query!(
+            "
+                DELETE FROM states
+                WHERE id = $1
+                ",
+            state_id as i64
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        let client_id = dotenv::var("DISCORD_CLIENT_ID")?;
+        let client_secret = dotenv::var("DISCORD_CLIENT_SECRET")?;
+        let redirect_uri = dotenv::var("DISCORD_REDIRECT_URI")?;
+
+        let url = format!("https://discord.com/api/v8/oauth2/token");
+        let code = info.code.unwrap();
+
+        let mut params = HashMap::new();
+        params.insert("client_id", client_id);
+        params.insert("client_secret", client_secret);
+        params.insert("grant_type", "authorization_code".into());
+        params.insert("code", code);
+        params.insert("redirect_uri", redirect_uri);
+
+        let token: AccessToken = reqwest::Client::new()
+            .post(&url)
+            .header(reqwest::header::ACCEPT, "application/json")
+            .form(&params)
+            .send()
+            .await?
+            .json()
+            .await?;
+
+        let user = get_discord_user_from_token(&*token.access_token).await?;
+
+        let user_result = User::get_from_discord_id(user.id.clone(), &mut *transaction).await?;
+        match user_result {
+            Some(x) => info!("{:?}", x.id),
+            None => {
+                let user_id = crate::database::models::generate_user_id(&mut transaction).await?;
+
+                User {
+                    id: user_id,
+                    discord_id: Some(user.id.clone()),
+                    username: user.username.clone(),
+                    name: Some(user.username),
+                    email: user.email,
+                    avatar_url: Some(format!("https://cdn.discordapp.com/avatars/{}/{}",user.id, user.avatar)),
+                    bio: None,
+                    created: Utc::now(),
+                    role: Role::Developer.to_string(),
+                }
+                .insert(&mut transaction)
+                .await?;
+            }
+        }
+
+        transaction.commit().await?;
+
+        let redirect_url = format!("{}?code={}", result.url, token.access_token);
+
+        Ok(HttpResponse::TemporaryRedirect()
+            .header("Location", &*redirect_url)
+            .json(AuthorizationInit { url: redirect_url }))
     }
-
-    transaction.commit().await?;
-
-    let redirect_url = format!("{}?code={}", result.url, token.access_token);
-
-    Ok(HttpResponse::TemporaryRedirect()
-        .header("Location", &*redirect_url)
-        .json(AuthorizationInit { url: redirect_url }))
 }

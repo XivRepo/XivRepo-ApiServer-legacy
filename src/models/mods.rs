@@ -5,13 +5,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// The ID of a specific mod, encoded as base62 for usage in the API
-#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "Base62Id")]
 #[serde(into = "Base62Id")]
 pub struct ModId(pub u64);
 
 /// The ID of a specific version of a mod
-#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "Base62Id")]
 #[serde(into = "Base62Id")]
 pub struct VersionId(pub u64);
@@ -22,7 +22,7 @@ pub struct Mod {
     /// The ID of the mod, encoded as a base62 string.
     pub id: ModId,
     /// The slug of a mod, used for vanity URLs
-    pub slug: Option<String>,
+    pub slug: String,
     /// The team of people that has ownership of this mod.
     pub team: TeamId,
     /// The title or name of the mod.
@@ -182,7 +182,7 @@ impl ModStatus {
 }
 
 /// A specific version of a mod
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Version {
     /// The ID of the version, encoded as a base62 string.
     pub id: VersionId,
@@ -216,7 +216,7 @@ pub struct Version {
 }
 
 /// A single mod file, with a url for the file and the file's hash
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VersionFile {
     /// A map of hashes of the file.  The key is the hashing algorithm
     /// and the value is the string version of the hash.
@@ -231,7 +231,7 @@ pub struct VersionFile {
 
 /// A dependency which describes what versions are required, break support, or are optional to the
 /// version's functionality
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Dependency {
     /// The filename of the file.
     pub version_id: VersionId,
@@ -239,7 +239,7 @@ pub struct Dependency {
     pub dependency_type: DependencyType,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum VersionType {
     Release,
@@ -268,7 +268,7 @@ impl VersionType {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum DependencyType {
     Required,
@@ -307,12 +307,12 @@ impl DependencyType {
 }
 
 /// A specific version of Minecraft
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
 pub struct GameVersion(pub String);
 
 /// A mod loader
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(transparent)]
 pub struct ModLoader(pub String);
 

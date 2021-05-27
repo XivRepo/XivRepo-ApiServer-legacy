@@ -1,0 +1,1 @@
+INSERT INTO categories (category) VALUES ('face_mod'), ('body_mod'), ('hair_mod'), ('mount_mod'), ('minion_mod'), ('furniture_mod'), ('skin_mod'), ('racial_scale_mod');

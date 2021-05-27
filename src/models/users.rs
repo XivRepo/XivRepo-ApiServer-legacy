@@ -1,7 +1,7 @@
 use super::ids::Base62Id;
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "Base62Id")]
 #[serde(into = "Base62Id")]
 pub struct UserId(pub u64);

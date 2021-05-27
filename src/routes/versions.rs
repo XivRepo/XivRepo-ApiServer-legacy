@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::borrow::Borrow;
 use std::sync::Arc;
+use log::{info, warn};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VersionListFilters {

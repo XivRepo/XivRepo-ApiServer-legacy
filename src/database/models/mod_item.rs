@@ -1,5 +1,6 @@
 use super::ids::*;
 
+#[derive(Debug)]
 pub struct DonationUrl {
     pub mod_id: ModId,
     pub platform_id: DonationPlatformId,
@@ -32,7 +33,7 @@ impl DonationUrl {
         Ok(())
     }
 }
-
+#[derive(Debug)]
 pub struct ModBuilder {
     pub mod_id: ModId,
     pub team_id: TeamId,
@@ -51,7 +52,7 @@ pub struct ModBuilder {
     pub client_side: SideTypeId,
     pub server_side: SideTypeId,
     pub license: LicenseId,
-    pub slug: Option<String>,
+    pub slug: String,
     pub donation_urls: Vec<DonationUrl>,
 }
 
@@ -81,7 +82,7 @@ impl ModBuilder {
             client_side: self.client_side,
             server_side: self.server_side,
             license: self.license,
-            slug: self.slug,
+            slug: Some(self.slug),
         };
         mod_struct.insert(&mut *transaction).await?;
 

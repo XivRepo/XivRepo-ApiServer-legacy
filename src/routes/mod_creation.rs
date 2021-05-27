@@ -11,10 +11,12 @@ use actix_web::http::StatusCode;
 use actix_web::web::Data;
 use actix_web::{post, HttpRequest, HttpResponse};
 use futures::stream::StreamExt;
+use log::info;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use std::sync::Arc;
 use thiserror::Error;
+use slugify::slugify;
 
 #[derive(Error, Debug)]
 pub enum CreateError {
@@ -108,7 +110,7 @@ struct ModCreateData {
     /// The title or name of the mod.
     pub mod_name: String,
     /// The slug of a mod, used for vanity URLs
-    pub mod_slug: String,
+    pub mod_slug: Option<String>,
     /// A short description of the mod.
     pub mod_description: String,
     /// A long description of the mod, in markdown.
@@ -275,7 +277,7 @@ async fn mod_create_inner(
         while let Some(chunk) = field.next().await {
             data.extend_from_slice(&chunk.map_err(CreateError::MultipartError)?);
         }
-        let create_data: ModCreateData = serde_json::from_slice(&data)?;
+        let mut create_data: ModCreateData = serde_json::from_slice(&data)?;
 
         {
             // Verify the lengths of various fields in the mod create data
@@ -299,12 +301,13 @@ async fn mod_create_inner(
 
             check_length(3..=256, "mod name", &create_data.mod_name)?;
             check_length(3..=2048, "mod description", &create_data.mod_description)?;
-            check_length(3..=64, "mod slug", &create_data.mod_slug)?;
+            // Mod slug will be optional, generated if not set explicitly
+            //check_length(3..=64, "mod slug", &create_data.mod_slug)?;
             check_length(..65536, "mod body", &create_data.mod_body)?;
 
-            if create_data.categories.len() > 3 {
+            if create_data.categories.len() > 12 {
                 return Err(CreateError::InvalidInput(
-                    "The maximum number of categories for a mod is four.".to_string(),
+                    "The maximum number of categories for a mod is 12.".to_string(),
                 ));
             }
 
@@ -335,8 +338,13 @@ async fn mod_create_inner(
                 .try_for_each(|v| super::version_creation::check_version(v))?;
         }
 
+        if (create_data.mod_slug.is_none() || create_data.mod_slug.clone().unwrap() == "") {
+            create_data.mod_slug = Some(slugify!(&create_data.mod_name));
+            info!("Mod Slug is none. Converting {} to {}", &create_data.mod_name, slugify!(&create_data.mod_name));
+        }
+
         let slug_modid_option: Option<ModId> =
-            serde_json::from_str(&*format!("\"{}\"", create_data.mod_slug)).ok();
+            serde_json::from_str(&*format!("\"{}\"", &create_data.mod_slug.clone().unwrap())).ok();
         if let Some(slug_modid) = slug_modid_option {
             let slug_modid: models::ids::ModId = slug_modid.into();
             let results = sqlx::query!(
@@ -547,12 +555,12 @@ async fn mod_create_inner(
             client_side: client_side_id,
             server_side: server_side_id,
             license: license_id,
-            slug: Some(mod_create_data.mod_slug),
+            slug: mod_create_data.mod_slug.unwrap(),
             donation_urls,
         };
 
         let now = chrono::Utc::now();
-
+        
         let response = crate::models::mods::Mod {
             id: mod_id,
             slug: mod_builder.slug.clone(),

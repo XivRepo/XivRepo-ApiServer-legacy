@@ -1626,7 +1626,7 @@ dependencies = [
  "http",
  "indexmap",
  "slab",
- "tokio 1.1.0",
+ "tokio 1.6.0",
  "tokio-util 0.6.2",
  "tracing",
  "tracing-futures",
@@ -1806,7 +1806,7 @@ dependencies = [
  "itoa",
  "pin-project 1.0.4",
  "socket2",
- "tokio 1.1.0",
+ "tokio 1.6.0",
  "tower-service",
  "tracing",
  "want",
@@ -1834,7 +1834,7 @@ dependencies = [
  "bytes 1.0.1",
  "hyper 0.14.2",
  "native-tls",
- "tokio 1.1.0",
+ "tokio 1.6.0",
  "tokio-native-tls",
 ]
 
@@ -1960,45 +1960,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "labrinth"
-version = "0.1.0"
-dependencies = [
- "actix-cors",
- "actix-files",
- "actix-multipart",
- "actix-ratelimit",
- "actix-rt",
- "actix-web",
- "async-trait",
- "base64 0.13.0",
- "bitflags",
- "chrono",
- "dotenv",
- "env_logger",
- "futures",
- "futures-timer",
- "gumdrop",
- "lazy_static",
- "log",
- "meilisearch-sdk",
- "rand 0.7.3",
- "reqwest 0.10.10",
- "rust-s3",
- "sentry",
- "sentry-actix",
- "serde",
- "serde_json",
- "serde_with",
- "sha1",
- "sha2",
- "sqlx",
- "thiserror",
- "xml-rs",
- "yaserde",
- "yaserde_derive",
-]
-
-[[package]]
 name = "language-tags"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2025,9 +1986,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.82"
+version = "0.2.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89203f3fba0a3795506acaad8ebce3c80c0af93f994d5a1d7a0b1eeb23271929"
+checksum = "789da6d93f1b866ffe175afc5322a4d76c038605a1c3319bb57b06967ca98a36"
 
 [[package]]
 name = "libnghttp2-sys"
@@ -2128,11 +2089,13 @@ checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
 
 [[package]]
 name = "meilisearch-sdk"
-version = "0.6.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8972f69aef330566ece2a76e61ebb9383565b03c45aeb95dbd66ad672186497"
+checksum = "a35afb8ba2129a387090b4727aa95a5071479e4f58a53c6aa664e4326b8d7ca1"
 dependencies = [
+ "futures",
  "isahc",
+ "js-sys",
  "log",
  "serde",
  "serde_json",
@@ -2796,9 +2759,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.11.0"
+version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd281b1030aa675fb90aa994d07187645bb3c8fc756ca766e7c3070b439de9de"
+checksum = "2296f2fac53979e8ccbc4a1136b25dcefd37be9ed7e4a1f6b05a6029c84ff124"
 dependencies = [
  "base64 0.13.0",
  "bytes 1.0.1",
@@ -2820,7 +2783,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
- "tokio 1.1.0",
+ "tokio 1.6.0",
  "tokio-native-tls",
  "url",
  "wasm-bindgen",
@@ -3048,7 +3011,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27c425b07c7186018e2ef9ac3a25b01dae78b05a7ef604d07f216b9f59b42b4"
 dependencies = [
  "httpdate",
- "reqwest 0.11.0",
+ "reqwest 0.11.3",
  "sentry-backtrace",
  "sentry-contexts",
  "sentry-core",
@@ -3272,6 +3235,15 @@ name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
+
+[[package]]
+name = "slugify"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6b8cf203d2088b831d7558f8e5151bfa420c57a34240b28cee29d0ae5f2ac8b"
+dependencies = [
+ "unidecode",
+]
 
 [[package]]
 name = "sluice"
@@ -3688,9 +3660,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.1.0"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8efab2086f17abcddb8f756117665c958feee6b2e39974c2f1600592ab3a4195"
+checksum = "bd3076b5c8cc18138b8f8814895c11eb4de37114a5d127bafdc5e55798ceef37"
 dependencies = [
  "autocfg",
  "bytes 1.0.1",
@@ -3719,7 +3691,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7d995660bd2b7f8c1568414c1126076c13fbb725c40112dc0120b78eb9b717b"
 dependencies = [
  "native-tls",
- "tokio 1.1.0",
+ "tokio 1.6.0",
 ]
 
 [[package]]
@@ -3742,7 +3714,7 @@ checksum = "76066865172052eb8796c686f0b441a93df8b08d40a950b062ffb9a426f00edd"
 dependencies = [
  "futures-core",
  "pin-project-lite 0.2.4",
- "tokio 1.1.0",
+ "tokio 1.6.0",
 ]
 
 [[package]]
@@ -3796,7 +3768,7 @@ dependencies = [
  "futures-sink",
  "log",
  "pin-project-lite 0.2.4",
- "tokio 1.1.0",
+ "tokio 1.6.0",
  "tokio-stream",
 ]
 
@@ -3976,6 +3948,12 @@ name = "unicode_categories"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39ec24b3121d976906ece63c9daad25b85969647682eee313cb5779fdd69e14e"
+
+[[package]]
+name = "unidecode"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "402bb19d8e03f1d1a7450e2bd613980869438e0666331be3e073089124aa1adc"
 
 [[package]]
 name = "unreachable"
@@ -4312,6 +4290,46 @@ name = "wyz"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85e60b0d1b5f99db2556934e21937020776a5d31520bf169e851ac44e6420214"
+
+[[package]]
+name = "xivrepo"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-files",
+ "actix-multipart",
+ "actix-ratelimit",
+ "actix-rt",
+ "actix-web",
+ "async-trait",
+ "base64 0.13.0",
+ "bitflags",
+ "chrono",
+ "dotenv",
+ "env_logger",
+ "futures",
+ "futures-timer",
+ "gumdrop",
+ "lazy_static",
+ "log",
+ "meilisearch-sdk",
+ "rand 0.8.3",
+ "reqwest 0.10.10",
+ "rust-s3",
+ "sentry",
+ "sentry-actix",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha1",
+ "sha2",
+ "slugify",
+ "sqlx",
+ "thiserror",
+ "xml-rs",
+ "yaserde",
+ "yaserde_derive",
+]
 
 [[package]]
 name = "xml-rs"

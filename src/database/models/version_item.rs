@@ -1,7 +1,7 @@
 use super::ids::*;
 use super::DatabaseError;
 use std::collections::HashMap;
-
+#[derive(Debug)]
 pub struct VersionBuilder {
     pub version_id: VersionId,
     pub mod_id: ModId,
@@ -15,6 +15,7 @@ pub struct VersionBuilder {
     pub featured: bool,
 }
 
+#[derive(Debug)]
 pub struct VersionFileBuilder {
     pub url: String,
     pub filename: String,
@@ -61,6 +62,7 @@ impl VersionFileBuilder {
     }
 }
 
+#[derive(Debug)]
 pub struct HashBuilder {
     pub algorithm: String,
     pub hash: Vec<u8>,
@@ -346,17 +348,11 @@ impl Version {
             "
             SELECT version.id FROM (
                 SELECT DISTINCT ON(v.id) v.id, v.date_published FROM versions v
-                INNER JOIN game_versions_versions gvv ON gvv.joining_version_id = v.id
-                INNER JOIN game_versions gv on gvv.game_version_id = gv.id AND (cardinality($2::varchar[]) = 0 OR gv.version = ANY($2::varchar[]))
-                INNER JOIN loaders_versions lv ON lv.version_id = v.id
-                INNER JOIN loaders l on lv.loader_id = l.id AND (cardinality($3::varchar[]) = 0 OR l.loader = ANY($3::varchar[]))
                 WHERE v.mod_id = $1
             ) AS version
             ORDER BY version.date_published ASC
             ",
-            mod_id as ModId,
-            &game_versions.unwrap_or_default(),
-            &loaders.unwrap_or_default(),
+            mod_id as ModId
         )
         .fetch_many(exec)
         .try_filter_map(|e| async { Ok(e.right().map(|v| VersionId(v.id))) })

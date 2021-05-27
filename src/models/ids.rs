@@ -22,7 +22,7 @@ pub fn random_base62(n: usize) -> u64 {
     let mut rng = rand::thread_rng();
     // gen_range is [low, high): max value is `MULTIPLES[n] - 1`,
     // which is n characters long when encoded
-    rng.gen_range(MULTIPLES[n - 1], MULTIPLES[n])
+    rng.gen_range(MULTIPLES[n - 1]..MULTIPLES[n])
 }
 
 /// Generates a random 64 bit integer that is exactly `n` characters
@@ -35,7 +35,7 @@ pub fn random_base62(n: usize) -> u64 {
 pub fn random_base62_rng<R: rand::RngCore>(rng: &mut R, n: usize) -> u64 {
     use rand::Rng;
     assert!(n > 0 && n <= 11);
-    rng.gen_range(MULTIPLES[n - 1], MULTIPLES[n])
+    rng.gen_range(MULTIPLES[n - 1]..MULTIPLES[n])
 }
 
 const MULTIPLES: [u64; 12] = [

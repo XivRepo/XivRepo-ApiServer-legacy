@@ -197,7 +197,7 @@ pub fn convert_mod(data: database::models::mod_item::QueryMod) -> models::mods::
 
     models::mods::Mod {
         id: m.id.into(),
-        slug: m.slug,
+        slug: m.slug.unwrap(),
         team: m.team_id.into(),
         title: m.title,
         description: m.description,

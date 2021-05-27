@@ -228,8 +228,6 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
-    scheduler::schedule_versions(&mut scheduler, pool.clone(), skip_initial);
-
     let ip_salt = Pepper {
         pepper: crate::models::ids::Base62Id(crate::models::ids::random_base62(11)).to_string(),
     };
@@ -238,17 +236,23 @@ async fn main() -> std::io::Result<()> {
 
     info!("Starting Actix HTTP server!");
 
+    let site_url = dotenv::var("SITE_URL").unwrap();
+
     // Init App
     HttpServer::new(move || {
         App::new()
             .wrap(
+                /*
                 Cors::new()
+                    .supports_credentials() 
+                    .allowed_origin(&site_url)
                     .allowed_methods(vec!["GET", "POST", "DELETE", "PATCH", "PUT"])
                     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                     .allowed_header(http::header::CONTENT_TYPE)
-                    .send_wildcard()
                     .max_age(3600)
                     .finish(),
+                    */
+                Cors::new().send_wildcard().finish(),
             )
             .wrap(
                 // This is a hacky workaround to allowing the frontend server-side renderer to have
@@ -272,7 +276,7 @@ async fn main() -> std::io::Result<()> {
                             // At an even distribution of numbers, this will allow at the most
                             // 3000 requests per minute from the frontend, which is reasonable
                             // (50 requests per second)
-                            let random = rand::thread_rng().gen_range(1, 15);
+                            let random = rand::thread_rng().gen_range(1..15);
                             return Ok(format!("{}-{}", ip, random));
                         }
 
