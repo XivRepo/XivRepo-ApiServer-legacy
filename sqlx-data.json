@@ -310,6 +310,68 @@
       ]
     }
   },
+  "14b4f2d7e89528b2d704475fb72deda7ffa171dae5bfb912d307ba6291f8f3cf": {
+    "query": "\n            SELECT u.discord_id, u.name, u.email,\n                u.avatar_url, u.username, u.bio,\n                u.created, u.role\n            FROM users u\n            WHERE u.id = $1\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "discord_id",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "email",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "avatar_url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "username",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "bio",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "created",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "role",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false
+      ]
+    }
+  },
   "153100dc632392c4d446cc768235d071bac26a0818a4a72d203d8e549f969eea": {
     "query": "SELECT id FROM versions WHERE mod_id = $1 AND version_number = $2",
     "describe": {
@@ -428,74 +490,6 @@
         false,
         false,
         null
-      ]
-    }
-  },
-  "17e6d30c3693e9bd9f772f3dc4e2eafe75fdeecfdcf2746eac641f77ced6b8a8": {
-    "query": "\n            SELECT u.id, u.github_id, u.name, u.email,\n                u.avatar_url, u.username, u.bio,\n                u.created, u.role FROM users u\n            WHERE u.id IN (SELECT * FROM UNNEST($1::bigint[]))\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "github_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 3,
-          "name": "email",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 4,
-          "name": "avatar_url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 5,
-          "name": "username",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 6,
-          "name": "bio",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 7,
-          "name": "created",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 8,
-          "name": "role",
-          "type_info": "Varchar"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8Array"
-        ]
-      },
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        true,
-        false,
-        true,
-        false,
-        false
       ]
     }
   },
@@ -996,19 +990,6 @@
       ]
     }
   },
-  "29e657d26f0fb24a766f5b5eb6a94d01d1616884d8ca10e91536e974d5b585a6": {
-    "query": "\n                INSERT INTO loaders_versions (loader_id, version_id)\n                VALUES ($1, $2)\n                ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int8"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "2abecb467a9ad3b792babf20e09601c011fc2622e101e98054baeaacaa16795a": {
     "query": "\n            DELETE FROM licenses\n            WHERE short = $1\n            ",
     "describe": {
@@ -1251,6 +1232,18 @@
   },
   "33fc96ac71cfa382991cfb153e89da1e9f43ebf5367c28b30c336b758222307b": {
     "query": "\n            DELETE FROM loaders_versions\n            WHERE loaders_versions.version_id = $1\n            ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "36a56feb27d6f07b7c3e7a1aa3a9e6358b5c1b08e7961343a021e2b1790877f5": {
+    "query": "\n                DELETE FROM states\n                WHERE id = $1\n                ",
     "describe": {
       "columns": [],
       "parameters": {
@@ -2064,6 +2057,32 @@
       "nullable": []
     }
   },
+  "5e9201bf673a314f813af5d83d30a5448891dece3654d34a630c99c4a2ba6133": {
+    "query": "\n                SELECT url,expires FROM states\n                WHERE id = $1\n                ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 1,
+          "name": "expires",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false
+      ]
+    }
+  },
   "5eb2795d25d6d03e22564048c198d821cd5ff22eb4e39b9dd7f198c9113d4f87": {
     "query": "\n                    UPDATE users\n                    SET name = $1\n                    WHERE (id = $2)\n                    ",
     "describe": {
@@ -2075,28 +2094,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "5ff8fd471ff62f86aa95e52cee2723b31ec3d7fc53c3ef1454df40eef0ceff53": {
-    "query": "\n            SELECT version.id FROM (\n                SELECT DISTINCT ON(v.id) v.id, v.date_published FROM versions v\n                INNER JOIN game_versions_versions gvv ON gvv.joining_version_id = v.id\n                INNER JOIN game_versions gv on gvv.game_version_id = gv.id AND (cardinality($2::varchar[]) = 0 OR gv.version = ANY($2::varchar[]))\n                INNER JOIN loaders_versions lv ON lv.version_id = v.id\n                INNER JOIN loaders l on lv.loader_id = l.id AND (cardinality($3::varchar[]) = 0 OR l.loader = ANY($3::varchar[]))\n                WHERE v.mod_id = $1\n            ) AS version\n            ORDER BY version.date_published ASC\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "VarcharArray",
-          "VarcharArray"
-        ]
-      },
-      "nullable": [
-        false
-      ]
     }
   },
   "6131d32a65f5e04775308386812f25c6d8464582678536a392a4a3737667f363": {
@@ -2625,6 +2622,68 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "76d7854271d42737d269d16174a01c970eee6b6b45287cf40cc6567d27652b3c": {
+    "query": "\n            SELECT u.id, u.discord_id, u.name, u.email,\n                u.avatar_url, u.bio,\n                u.created, u.role\n            FROM users u\n            WHERE LOWER(u.username) = LOWER($1)\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "discord_id",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "email",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "avatar_url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "bio",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "created",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "role",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false
+      ]
     }
   },
   "76db1c204139e18002e5751c3dcefff79791a1dd852b62d34fcf008151e8945a": {
@@ -3272,18 +3331,6 @@
       ]
     }
   },
-  "a39ce28b656032f862b205cffa393a76b989f4803654a615477a94fda5f57354": {
-    "query": "\n            DELETE FROM states\n            WHERE id = $1\n            ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "a40e4075ba1bff5b6fde104ed1557ad8d4a75d7d90d481decd222f31685c4981": {
     "query": "\n                    DELETE FROM dependencies WHERE dependent_id = $1\n                    ",
     "describe": {
@@ -3475,68 +3522,6 @@
       ]
     }
   },
-  "a94eb4862ba30ca21f15198d9b7b9fd80ce01d45457e0b4d68270b5e3f9be8c6": {
-    "query": "\n            SELECT u.github_id, u.name, u.email,\n                u.avatar_url, u.username, u.bio,\n                u.created, u.role\n            FROM users u\n            WHERE u.id = $1\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "github_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "name",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 2,
-          "name": "email",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 3,
-          "name": "avatar_url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 4,
-          "name": "username",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 5,
-          "name": "bio",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 6,
-          "name": "created",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 7,
-          "name": "role",
-          "type_info": "Varchar"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        false,
-        true,
-        false,
-        false
-      ]
-    }
-  },
   "ac840a3ba466cfa1f914a1e44fcc9052bd1e0e908140e7147d1ff72d1794cfbf": {
     "query": "\n                            SELECT EXISTS(SELECT 1 FROM mods WHERE id=$1)\n                            ",
     "describe": {
@@ -3628,14 +3613,14 @@
       ]
     }
   },
-  "b446a7ddda6860b72517501332a51e64e76f6ab6de6527ad86b4c77db71f6037": {
-    "query": "\n            INSERT INTO users (\n                id, github_id, username, name, email,\n                avatar_url, bio, created\n            )\n            VALUES (\n                $1, $2, LOWER($3), $4, $5,\n                $6, $7, $8\n            )\n            ",
+  "b56c3a3e8e39fe174fd78ad048e437025b247a1353453cd236954b486d8eab80": {
+    "query": "\n            INSERT INTO users (\n                id, discord_id, username, name, email,\n                avatar_url, bio, created\n            )\n            VALUES (\n                $1, $2, LOWER($3), $4, $5,\n                $6, $7, $8\n            )\n            ",
     "describe": {
       "columns": [],
       "parameters": {
         "Left": [
           "Int8",
-          "Int8",
+          "Varchar",
           "Text",
           "Varchar",
           "Varchar",
@@ -3702,19 +3687,6 @@
       "columns": [],
       "parameters": {
         "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "b96ab39ab9624bfcdc8675107544307af9892504c4cbc40e4e7c40a1e4e83e14": {
-    "query": "\n                INSERT INTO game_versions_versions (game_version_id, joining_version_id)\n                VALUES ($1, $2)\n                ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4",
           "Int8"
         ]
       },
@@ -4423,6 +4395,74 @@
       ]
     }
   },
+  "d19c06914e143f087249cd21cd989a90747d7493fb3593d02008a01f4916c848": {
+    "query": "\n            SELECT u.id, u.discord_id, u.name, u.email,\n                u.avatar_url, u.username, u.bio,\n                u.created, u.role FROM users u\n            WHERE u.id IN (SELECT * FROM UNNEST($1::bigint[]))\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "discord_id",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "email",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "avatar_url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "username",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "bio",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 7,
+          "name": "created",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "role",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8Array"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false
+      ]
+    }
+  },
   "d44c747044d9b1f6424e6a0eece324fd3e0964efdcb9ec7d18e70a2f67787914": {
     "query": "\n                SELECT DISTINCT loaders.loader FROM versions\n                INNER JOIN loaders_versions lv ON lv.version_id = versions.id\n                INNER JOIN loaders ON loaders.id = lv.loader_id\n                WHERE versions.mod_id = $1\n                ",
     "describe": {
@@ -4536,68 +4576,6 @@
       ]
     }
   },
-  "d97246f46e85cd99356468cdf36f00d86d1d576f94e4a259bf8b43cf20463f0e": {
-    "query": "\n            SELECT u.id, u.github_id, u.name, u.email,\n                u.avatar_url, u.bio,\n                u.created, u.role\n            FROM users u\n            WHERE LOWER(u.username) = LOWER($1)\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "github_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "name",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 3,
-          "name": "email",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 4,
-          "name": "avatar_url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 5,
-          "name": "bio",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 6,
-          "name": "created",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 7,
-          "name": "role",
-          "type_info": "Varchar"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-        false
-      ]
-    }
-  },
   "dc6aa2e7bfd5d5004620ddd4cd6a47ecc56159e1489054e0652d56df802fb5e5": {
     "query": "\n                    UPDATE mods\n                    SET body = $1\n                    WHERE (id = $2)\n                    ",
     "describe": {
@@ -4609,6 +4587,26 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "dcde5b3f3281f0c49f8de30d44ee00f3d6bece27241548cfd632921a8c2ce758": {
+    "query": "\n            SELECT version.id FROM (\n                SELECT DISTINCT ON(v.id) v.id, v.date_published FROM versions v\n                WHERE v.mod_id = $1\n            ) AS version\n            ORDER BY version.date_published ASC\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false
+      ]
     }
   },
   "e3235e872f98eb85d3eb4a2518fb9dc88049ce62362bfd02623e9b49ac2e9fed": {
@@ -4659,6 +4657,68 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "e44f784a0d727e966f8c17ea8f3ee79c73636b5a0a59a70ee8db60ffe65599de": {
+    "query": "\n            SELECT u.id, u.name, u.email,\n                u.avatar_url, u.username, u.bio,\n                u.created, u.role\n            FROM users u\n            WHERE u.discord_id = $1\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "email",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "avatar_url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "username",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "bio",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "created",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "role",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false
+      ]
     }
   },
   "e48c85a2b2e11691afae3799aa126bdd8b7338a973308bbab2760c18bb9cb0b7": {
@@ -4737,68 +4797,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "ea877d50ba461eae97ba3a35c3da71e7cdb7a92de1bb877d6b5dd766aca4e4ef": {
-    "query": "\n            SELECT u.id, u.name, u.email,\n                u.avatar_url, u.username, u.bio,\n                u.created, u.role\n            FROM users u\n            WHERE u.github_id = $1\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "name",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 2,
-          "name": "email",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 3,
-          "name": "avatar_url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 4,
-          "name": "username",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 5,
-          "name": "bio",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 6,
-          "name": "created",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 7,
-          "name": "role",
-          "type_info": "Varchar"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        false,
-        true,
-        false,
-        false
-      ]
     }
   },
   "ebef881a0dae70e990814e567ed3de9565bb29b772782bc974c953af195fd6d7": {
@@ -4914,32 +4912,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "f7bea04e8e279e27a24de1bdf3c413daa8677994df5131494b28691ed6611efc": {
-    "query": "\n            SELECT url,expires FROM states\n            WHERE id = $1\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 1,
-          "name": "expires",
-          "type_info": "Timestamptz"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": [
-        false,
-        false
-      ]
     }
   },
   "f8c00875a7450c74423f9913cc3500898e9fcb6aa7eb8fc2f6fd16dc560773de": {

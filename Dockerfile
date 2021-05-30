@@ -1,7 +1,7 @@
-FROM rust:1.45.1 as build
+FROM rust:1.52.1 as build
 ENV PKG_CONFIG_ALLOW_CROSS=1
 
-WORKDIR /usr/src/labrinth
+WORKDIR /usr/src/apiserver
 # Download and compile deps
 COPY Cargo.toml .
 COPY Cargo.lock .
@@ -25,9 +25,9 @@ RUN cargo build --release
 
 FROM bitnami/minideb:latest
 RUN install_packages openssl ca-certificates
-COPY --from=build /usr/src/labrinth/target/release/labrinth /labrinth/labrinth
-COPY --from=build /usr/src/labrinth/migrations/* /labrinth/migrations/
+COPY --from=build /usr/src/apiserver/target/release/xivrepo /apiserver/xivrepo
+COPY --from=build /usr/src/apiserver/migrations/* /apiserver/migrations/
 COPY --from=build /wait /wait
-WORKDIR /labrinth
+WORKDIR /apiserver
 
-CMD /wait && /labrinth/labrinth
+CMD /wait && /apiserver/xivrepo
