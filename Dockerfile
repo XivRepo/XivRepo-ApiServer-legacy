@@ -30,4 +30,6 @@ COPY --from=build /usr/src/apiserver/migrations/* /apiserver/migrations/
 COPY --from=build /wait /wait
 WORKDIR /apiserver
 
+EXPOSE 8000
+
 CMD /wait && /apiserver/xivrepo
