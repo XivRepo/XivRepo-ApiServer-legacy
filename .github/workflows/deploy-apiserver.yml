@@ -21,7 +21,7 @@ jobs:
       -
         name: Deploy
         run: |
-          pushd /compose/${GITHUB_REF##*/}-server
+          pushd /compose/${GITHUB_REF##*/}-api-server
           docker-compose down
           TAG=${{ github.sha }} docker-compose up -d
           popd
