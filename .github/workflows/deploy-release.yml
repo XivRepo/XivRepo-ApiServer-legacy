@@ -1,14 +1,13 @@
-name: Deploy ApiServer
+name: Release Deploy
 
 on:
   push:
     branches:
-      - develop
       - release
 
 jobs:
   deploy:
-    runs-on: [self-hosted, deploy]
+    runs-on: [self-hosted, deploy-release]
     steps:
       -
         name: Checkout
@@ -16,12 +15,11 @@ jobs:
 
       -
         name: Build
-        run: docker build . --file Dockerfile --tag xivrepo/apiserver-${GITHUB_REF##*/}:${{ github.sha }}
+        run: docker build . --file Dockerfile --tag xivrepo/apiserver-release:${{ github.sha }}
 
       -
         name: Deploy
         run: |
-          pushd /compose/${GITHUB_REF##*/}-server
-          docker-compose down
+          pushd /compose/release-api-server
           TAG=${{ github.sha }} docker-compose up -d
           popd
