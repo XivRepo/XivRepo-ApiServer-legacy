@@ -64,14 +64,16 @@ dependencies = [
 
 [[package]]
 name = "actix-cors"
-version = "0.4.1"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3e5c769e4d332bfad27f11b8139b5818c4bbddb02c385b8f16344d93ff1a8eb"
+checksum = "36b133d8026a9f209a9aeeeacd028e7451bcca975f592881b305d37983f303d7"
 dependencies = [
- "actix-service",
  "actix-web",
  "derive_more",
  "futures-util",
+ "log",
+ "once_cell",
+ "tinyvec",
 ]
 
 [[package]]
@@ -4349,12 +4351,14 @@ dependencies = [
 
 [[package]]
 name = "yaserde_derive"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9af81f1d48039716dd825cf4a7d61d39583f8b12705994abb446bae749a977bb"
+checksum = "6830def1c7840ddfdee690765630439a2a461a4f0e6dfe1f9020b5b2e7f27085"
 dependencies = [
  "heck",
+ "log",
  "proc-macro2",
  "quote",
  "syn",
+ "xml-rs",
 ]
