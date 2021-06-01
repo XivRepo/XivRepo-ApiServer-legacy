@@ -242,17 +242,12 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(
-                /*
-                Cors::new()
-                    .supports_credentials() 
-                    .allowed_origin(&site_url)
+                Cors::default()
                     .allowed_methods(vec!["GET", "POST", "DELETE", "PATCH", "PUT"])
                     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                     .allowed_header(http::header::CONTENT_TYPE)
-                    .max_age(3600)
-                    .finish(),
-                    */
-                Cors::new().send_wildcard().finish(),
+                    .allow_any_origin()
+                    .max_age(3600),
             )
             .wrap(
                 // This is a hacky workaround to allowing the frontend server-side renderer to have
