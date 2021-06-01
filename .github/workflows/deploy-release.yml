@@ -20,6 +20,6 @@ jobs:
       -
         name: Deploy
         run: |
-          pushd /compose/release-api-server
+          pushd /xivrepo/release/compose/api-rel
           TAG=${{ github.sha }} docker-compose up -d
           popd
