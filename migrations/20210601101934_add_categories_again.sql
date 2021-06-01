@@ -1,0 +1,1 @@
+INSERT INTO categories (category) VALUES ('gear_mod'), ('cmt_pose'), ('reshade'), ('other_mod');
