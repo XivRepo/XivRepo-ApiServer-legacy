@@ -2757,6 +2757,19 @@
       ]
     }
   },
+  "79745f68c81db03b3dcea3dfefba7c0de97a44e81c6ca73beb31d893eb31dd06": {
+    "query": "\n                        UPDATE users\n                        SET name = $1\n                        WHERE (id = $2)\n                        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Int8"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "79b896b1a8ddab285294638302976b75d0d915f36036383cc21bd2fc48d4502c": {
     "query": "\n                    DELETE FROM loaders_versions WHERE version_id = $1\n                    ",
     "describe": {
@@ -4607,6 +4620,19 @@
       "nullable": [
         false
       ]
+    }
+  },
+  "dd11ede38c34fec2e6f51d17b17273791aedb3f995b8d818b60d42e97af110c1": {
+    "query": "\n                        UPDATE users\n                        SET avatar_url = $1\n                        WHERE (id = $2)\n                        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Int8"
+        ]
+      },
+      "nullable": []
     }
   },
   "e3235e872f98eb85d3eb4a2518fb9dc88049ce62362bfd02623e9b49ac2e9fed": {
