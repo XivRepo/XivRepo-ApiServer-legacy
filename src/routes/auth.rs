@@ -200,7 +200,41 @@ pub async fn auth_callback(
 
         let user_result = User::get_from_discord_id(user.id.clone(), &mut *transaction).await?;
         match user_result {
-            Some(x) => info!("{:?}", x.id),
+            Some(x) => {
+                info!("{:?}", x.id);
+                let new_avatar = format!("https://cdn.discordapp.com/avatars/{}/{}",&user.id, &user.avatar);
+                let new_display_name = user.username.clone();
+                let id: crate::database::models::ids::UserId = x.id.into();
+
+                // Update user avatar and display name if discord user is different than database user
+                if x.avatar_url.is_some() && new_avatar != x.avatar_url.unwrap() {
+                    sqlx::query!(
+                        "
+                        UPDATE users
+                        SET avatar_url = $1
+                        WHERE (id = $2)
+                        ",
+                        Some(&new_avatar),
+                        id as crate::database::models::ids::UserId,
+                    )
+                    .execute(&mut *transaction)
+                    .await?;
+                }
+
+                if x.name.is_some() && new_display_name != x.name.unwrap() {
+                    sqlx::query!(
+                        "
+                        UPDATE users
+                        SET name = $1
+                        WHERE (id = $2)
+                        ",
+                        Some(new_display_name.as_str()),
+                        id as crate::database::models::ids::UserId,
+                    )
+                    .execute(&mut *transaction)
+                    .await?;
+                }
+            },
             None => {
                 let user_id = crate::database::models::generate_user_id(&mut transaction).await?;
 
