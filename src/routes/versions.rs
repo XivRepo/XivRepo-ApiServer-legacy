@@ -718,7 +718,7 @@ pub async fn download_version(
         }
         Ok(HttpResponse::TemporaryRedirect()
             .header("Location", &*id.url)
-            .header("Content-Disposition",&*id.filename )
+            .header("Content-Disposition",format!("filename='{}'", &*id.filename) )
             .json(DownloadRedirect { url: id.url }))
     } else {
         Ok(HttpResponse::NotFound().body(""))
