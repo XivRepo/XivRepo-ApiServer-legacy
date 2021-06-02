@@ -1015,6 +1015,51 @@
       "nullable": []
     }
   },
+  "2d15dff765fd578d6b12bc2fe3c3cdbaa11b5b7a4cf5e0bdc7ae6905ee267b25": {
+    "query": "\n        SELECT f.url url, f.id id, f.version_id version_id, v.mod_id mod_id, f.filename filename FROM hashes h\n        INNER JOIN files f ON h.file_id = f.id\n        INNER JOIN versions v ON v.id = f.version_id\n        WHERE h.algorithm = $2 AND h.hash = $1\n        ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 1,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "version_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "mod_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 4,
+          "name": "filename",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Bytea",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "2d2e5b06be5125226ed9e4d7b7b5f99043db73537f2199f2146bdcd56091ae75": {
     "query": "\n                INSERT INTO team_members (id, team_id, user_id, role, permissions, accepted)\n                VALUES ($1, $2, $3, $4, $5, $6)\n                ",
     "describe": {
@@ -3366,45 +3411,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "a8f22bd234488500b06855c8258e1e290696adba0766b46640bf87d91b150518": {
-    "query": "\n        SELECT f.url url, f.id id, f.version_id version_id, v.mod_id mod_id FROM hashes h\n        INNER JOIN files f ON h.file_id = f.id\n        INNER JOIN versions v ON v.id = f.version_id\n        WHERE h.algorithm = $2 AND h.hash = $1\n        ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 1,
-          "name": "id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "version_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 3,
-          "name": "mod_id",
-          "type_info": "Int8"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Bytea",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ]
     }
   },
   "a8f8acda6246fe82cc16c8804589102bfb176980fbcb93ca131f524ac395d86a": {
