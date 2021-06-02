@@ -548,7 +548,6 @@ pub async fn upload_file(
     })
 }
 
-// Currently we only support jar mods; this may change in the future (datapacks?)
 fn mod_file_type(ext: &str) -> Option<&str> {
     match ext {
         "zip"       => Some("application/zip"),
@@ -556,6 +555,8 @@ fn mod_file_type(ext: &str) -> Option<&str> {
         "rar"       => Some("application/vnd.rar"),
         "7z"        => Some("application/x-7z-compressed"),
         "ttmp2"     => Some("application/zip"),
+        "cmp"       => Some("text/plain"),
+        "pose"      => Some("text/plain"),
         _           => None,
     }
 }
