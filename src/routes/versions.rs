@@ -645,7 +645,7 @@ pub async fn download_version(
 
     let result = sqlx::query!(
         "
-        SELECT f.url url, f.id id, f.version_id version_id, v.mod_id mod_id FROM hashes h
+        SELECT f.url url, f.id id, f.version_id version_id, v.mod_id mod_id, f.filename filename FROM hashes h
         INNER JOIN files f ON h.file_id = f.id
         INNER JOIN versions v ON v.id = f.version_id
         WHERE h.algorithm = $2 AND h.hash = $1
@@ -718,6 +718,7 @@ pub async fn download_version(
         }
         Ok(HttpResponse::TemporaryRedirect()
             .header("Location", &*id.url)
+            .header("Content-Disposition",&*id.filename )
             .json(DownloadRedirect { url: id.url }))
     } else {
         Ok(HttpResponse::NotFound().body(""))
