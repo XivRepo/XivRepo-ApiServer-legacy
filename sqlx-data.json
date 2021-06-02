@@ -372,27 +372,6 @@
       ]
     }
   },
-  "153100dc632392c4d446cc768235d071bac26a0818a4a72d203d8e549f969eea": {
-    "query": "SELECT id FROM versions WHERE mod_id = $1 AND version_number = $2",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
   "15b8ea323c2f6d03c2e385d9c46d7f13460764f2f106fd638226c42ae0217f75": {
     "query": "\n            DELETE FROM notifications\n            WHERE user_id = $1\n            ",
     "describe": {
@@ -1287,6 +1266,104 @@
       "nullable": []
     }
   },
+  "34b00787cee7cd328fa35052cd0a80c574793ea2ceb44bd97eeb26f841b9330a": {
+    "query": "\n            SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,\n            v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,\n            rc.channel release_channel, v.featured featured,\n            STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,\n            STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,\n            STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies\n            FROM versions v\n            INNER JOIN release_channels rc on v.release_channel = rc.id\n            LEFT OUTER JOIN files f on v.id = f.version_id\n            LEFT OUTER JOIN hashes h on f.id = h.file_id\n            LEFT OUTER JOIN dependencies d on v.id = d.dependent_id\n            WHERE v.id IN (SELECT * FROM UNNEST($1::bigint[]))\n            GROUP BY v.id, rc.id;\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "mod_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "author_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "version_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "version_number",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "changelog",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "changelog_url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 7,
+          "name": "date_published",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "downloads",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 9,
+          "name": "release_channel",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 10,
+          "name": "featured",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 11,
+          "name": "files",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 12,
+          "name": "hashes",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 13,
+          "name": "dependencies",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        null,
+        null,
+        null
+      ]
+    }
+  },
   "36a56feb27d6f07b7c3e7a1aa3a9e6358b5c1b08e7961343a021e2b1790877f5": {
     "query": "\n                DELETE FROM states\n                WHERE id = $1\n                ",
     "describe": {
@@ -1460,19 +1537,6 @@
       "parameters": {
         "Left": [
           "Varchar",
-          "Int8"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "3f2f05653552ce8c1be95ce0a922ab41f52f40f8ff6c91c6621481102c8f35e3": {
-    "query": "\n                        INSERT INTO game_versions_versions (game_version_id, joining_version_id)\n                        VALUES ($1, $2)\n                        ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4",
           "Int8"
         ]
       },
@@ -1744,128 +1808,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "507314fdcacaa3c7751738c9d0baee2b90aec719b6b203f922824eced5ea8369": {
-    "query": "\n                    DELETE FROM game_versions_versions WHERE joining_version_id = $1\n                    ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "529f4c62eb8e98909ea7ec504f86647f105b1717990dd0c422919234060dc30f": {
-    "query": "\n            SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,\n            v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,\n            rc.channel release_channel, v.featured featured,\n            STRING_AGG(DISTINCT gv.version, ',') game_versions, STRING_AGG(DISTINCT l.loader, ',') loaders,\n            STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,\n            STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,\n            STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies\n            FROM versions v\n            INNER JOIN release_channels rc on v.release_channel = rc.id\n            LEFT OUTER JOIN game_versions_versions gvv on v.id = gvv.joining_version_id\n            LEFT OUTER JOIN game_versions gv on gvv.game_version_id = gv.id\n            LEFT OUTER JOIN loaders_versions lv on v.id = lv.version_id\n            LEFT OUTER JOIN loaders l on lv.loader_id = l.id\n            LEFT OUTER JOIN files f on v.id = f.version_id\n            LEFT OUTER JOIN hashes h on f.id = h.file_id\n            LEFT OUTER JOIN dependencies d on v.id = d.dependent_id\n            WHERE v.id IN (SELECT * FROM UNNEST($1::bigint[]))\n            GROUP BY v.id, rc.id;\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "mod_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "author_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 3,
-          "name": "version_name",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 4,
-          "name": "version_number",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 5,
-          "name": "changelog",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 6,
-          "name": "changelog_url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 7,
-          "name": "date_published",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 8,
-          "name": "downloads",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 9,
-          "name": "release_channel",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 10,
-          "name": "featured",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 11,
-          "name": "game_versions",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 12,
-          "name": "loaders",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 13,
-          "name": "files",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 14,
-          "name": "hashes",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 15,
-          "name": "dependencies",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8Array"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
     }
   },
   "53a8966ac345cc334ad65ea907be81af74e90b1217696c7eedcf8a8e3fca736e": {
@@ -2421,19 +2363,6 @@
       "nullable": []
     }
   },
-  "6c7aeb0db4a4fb3387c37b8d7aca6fdafaa637fd883a44416b56270aeebb7a01": {
-    "query": "\n                        INSERT INTO loaders_versions (loader_id, version_id)\n                        VALUES ($1, $2)\n                        ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int8"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "6d883ea05aead20f571a0f63bfd63f1d432717ec7a0fb9ab29e01fcb061b3afc": {
     "query": "\n                    UPDATE files\n                    SET is_primary = FALSE\n                    WHERE (version_id = $1)\n                    ",
     "describe": {
@@ -2809,18 +2738,6 @@
       "parameters": {
         "Left": [
           "Varchar",
-          "Int8"
-        ]
-      },
-      "nullable": []
-    }
-  },
-  "79b896b1a8ddab285294638302976b75d0d915f36036383cc21bd2fc48d4502c": {
-    "query": "\n                    DELETE FROM loaders_versions WHERE version_id = $1\n                    ",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
           "Int8"
         ]
       },
@@ -3599,6 +3516,104 @@
       ]
     }
   },
+  "aedcc76b23966591be74d852d53abbb00ffe4f3d9dbea832b030f0a9b3ff9978": {
+    "query": "\n            SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,\n            v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,\n            rc.channel release_channel, v.featured featured,\n            STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,\n            STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,\n            STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies\n            FROM versions v\n            INNER JOIN release_channels rc on v.release_channel = rc.id\n            LEFT OUTER JOIN files f on v.id = f.version_id\n            LEFT OUTER JOIN hashes h on f.id = h.file_id\n            LEFT OUTER JOIN dependencies d on v.id = d.dependent_id\n            WHERE v.id = $1\n            GROUP BY v.id, rc.id;\n            ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "mod_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "author_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "version_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "version_number",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "changelog",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "changelog_url",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 7,
+          "name": "date_published",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "downloads",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 9,
+          "name": "release_channel",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 10,
+          "name": "featured",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 11,
+          "name": "files",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 12,
+          "name": "hashes",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 13,
+          "name": "dependencies",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        null,
+        null,
+        null
+      ]
+    }
+  },
   "b0e3d1c70b87bb54819e3fac04b684a9b857aeedb4dcb7cb400c2af0dbb12922": {
     "query": "\n            DELETE FROM teams\n            WHERE id = $1\n            ",
     "describe": {
@@ -4107,116 +4122,6 @@
       ]
     }
   },
-  "ca5e6d56640069ea9b1c32881d59be8eb1c2ee06ececf223ad378d0422a6f198": {
-    "query": "\n            SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,\n            v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,\n            rc.channel release_channel, v.featured featured,\n            STRING_AGG(DISTINCT gv.version, ',') game_versions, STRING_AGG(DISTINCT l.loader, ',') loaders,\n            STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,\n            STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,\n            STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies\n            FROM versions v\n            INNER JOIN release_channels rc on v.release_channel = rc.id\n            LEFT OUTER JOIN game_versions_versions gvv on v.id = gvv.joining_version_id\n            LEFT OUTER JOIN game_versions gv on gvv.game_version_id = gv.id\n            LEFT OUTER JOIN loaders_versions lv on v.id = lv.version_id\n            LEFT OUTER JOIN loaders l on lv.loader_id = l.id\n            LEFT OUTER JOIN files f on v.id = f.version_id\n            LEFT OUTER JOIN hashes h on f.id = h.file_id\n            LEFT OUTER JOIN dependencies d on v.id = d.dependent_id\n            WHERE v.id = $1\n            GROUP BY v.id, rc.id;\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "mod_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "author_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 3,
-          "name": "version_name",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 4,
-          "name": "version_number",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 5,
-          "name": "changelog",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 6,
-          "name": "changelog_url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 7,
-          "name": "date_published",
-          "type_info": "Timestamptz"
-        },
-        {
-          "ordinal": 8,
-          "name": "downloads",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 9,
-          "name": "release_channel",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 10,
-          "name": "featured",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 11,
-          "name": "game_versions",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 12,
-          "name": "loaders",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 13,
-          "name": "files",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 14,
-          "name": "hashes",
-          "type_info": "Text"
-        },
-        {
-          "ordinal": 15,
-          "name": "dependencies",
-          "type_info": "Text"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        null,
-        null,
-        null,
-        null,
-        null
-      ]
-    }
-  },
   "cb57ae673f1a7e50cc319efddb9bdc82e2251596bcf85aea52e8def343e423b8": {
     "query": "\n                INSERT INTO hashes (file_id, algorithm, hash)\n                VALUES ($1, $2, $3)\n                ",
     "describe": {
@@ -4293,32 +4198,6 @@
         ]
       },
       "nullable": []
-    }
-  },
-  "cdd51904a4617d8a2616d9ad4b4274fa2e66e87db1825496854021a26798207c": {
-    "query": "\n            SELECT version_number, release_channels.channel channel\n            FROM versions\n            LEFT JOIN release_channels ON release_channels.id = versions.release_channel\n            WHERE mod_id = $1\n            ",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "version_number",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 1,
-          "name": "channel",
-          "type_info": "Varchar"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      },
-      "nullable": [
-        false,
-        false
-      ]
     }
   },
   "cdd7f8f95c308d9474e214d584c03be0466214da1e157f6bc577b76dbef7df86": {

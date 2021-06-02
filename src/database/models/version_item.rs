@@ -453,16 +453,11 @@ impl Version {
             SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,
             v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,
             rc.channel release_channel, v.featured featured,
-            STRING_AGG(DISTINCT gv.version, ',') game_versions, STRING_AGG(DISTINCT l.loader, ',') loaders,
             STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,
             STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,
             STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies
             FROM versions v
             INNER JOIN release_channels rc on v.release_channel = rc.id
-            LEFT OUTER JOIN game_versions_versions gvv on v.id = gvv.joining_version_id
-            LEFT OUTER JOIN game_versions gv on gvv.game_version_id = gv.id
-            LEFT OUTER JOIN loaders_versions lv on v.id = lv.version_id
-            LEFT OUTER JOIN loaders l on lv.loader_id = l.id
             LEFT OUTER JOIN files f on v.id = f.version_id
             LEFT OUTER JOIN hashes h on f.id = h.file_id
             LEFT OUTER JOIN dependencies d on v.id = d.dependent_id
@@ -542,18 +537,6 @@ impl Version {
                 downloads: v.downloads,
                 release_channel: v.release_channel,
                 files,
-                game_versions: v
-                    .game_versions
-                    .unwrap_or_default()
-                    .split(',')
-                    .map(|x| x.to_string())
-                    .collect(),
-                loaders: v
-                    .loaders
-                    .unwrap_or_default()
-                    .split(',')
-                    .map(|x| x.to_string())
-                    .collect(),
                 featured: v.featured,
                 dependencies,
             }))
@@ -577,16 +560,11 @@ impl Version {
             SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,
             v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,
             rc.channel release_channel, v.featured featured,
-            STRING_AGG(DISTINCT gv.version, ',') game_versions, STRING_AGG(DISTINCT l.loader, ',') loaders,
             STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,
             STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,
             STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies
             FROM versions v
             INNER JOIN release_channels rc on v.release_channel = rc.id
-            LEFT OUTER JOIN game_versions_versions gvv on v.id = gvv.joining_version_id
-            LEFT OUTER JOIN game_versions gv on gvv.game_version_id = gv.id
-            LEFT OUTER JOIN loaders_versions lv on v.id = lv.version_id
-            LEFT OUTER JOIN loaders l on lv.loader_id = l.id
             LEFT OUTER JOIN files f on v.id = f.version_id
             LEFT OUTER JOIN hashes h on f.id = h.file_id
             LEFT OUTER JOIN dependencies d on v.id = d.dependent_id
@@ -659,8 +637,6 @@ impl Version {
                         downloads: v.downloads,
                         release_channel: v.release_channel,
                         files,
-                        game_versions: v.game_versions.unwrap_or_default().split(',').map(|x| x.to_string()).collect(),
-                        loaders: v.loaders.unwrap_or_default().split(',').map(|x| x.to_string()).collect(),
                         featured: v.featured,
                         dependencies,
                     }
@@ -704,8 +680,6 @@ pub struct QueryVersion {
 
     pub release_channel: String,
     pub files: Vec<QueryFile>,
-    pub game_versions: Vec<String>,
-    pub loaders: Vec<String>,
     pub featured: bool,
     pub dependencies: Vec<(VersionId, String)>,
 }
