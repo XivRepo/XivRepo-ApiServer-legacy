@@ -2,7 +2,6 @@ use actix_web::web;
 
 mod auth;
 mod index;
-mod maven;
 mod mod_creation;
 mod moderation;
 mod mods;
@@ -38,11 +37,6 @@ pub fn mods_config(cfg: &mut web::ServiceConfig) {
             .service(mods::mod_unfollow)
             .service(web::scope("{mod_id}").service(versions::version_list)),
     );
-}
-
-pub fn maven_config(cfg: &mut web::ServiceConfig) {
-    cfg.service(maven::maven_metadata);
-    cfg.service(maven::version_file);
 }
 
 pub fn versions_config(cfg: &mut web::ServiceConfig) {

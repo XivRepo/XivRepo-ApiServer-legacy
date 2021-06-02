@@ -236,8 +236,6 @@ async fn main() -> std::io::Result<()> {
 
     info!("Starting Actix HTTP server!");
 
-    let site_url = dotenv::var("SITE_URL").unwrap();
-
     // Init App
     HttpServer::new(move || {
         App::new()
@@ -299,7 +297,6 @@ async fn main() -> std::io::Result<()> {
                     .configure(routes::reports_config)
                     .configure(routes::notifications_config),
             )
-            .service(web::scope("/maven/").configure(routes::maven_config))
             .default_service(web::get().to(routes::not_found))
     })
     .bind(dotenv::var("BIND_ADDR").unwrap())?

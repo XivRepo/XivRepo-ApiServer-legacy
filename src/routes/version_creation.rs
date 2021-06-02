@@ -4,7 +4,7 @@ use crate::database::models::notification_item::NotificationBuilder;
 use crate::database::models::version_item::{VersionBuilder, VersionFileBuilder};
 use crate::file_hosting::FileHost;
 use crate::models::mods::{
-    Dependency, GameVersion, ModId, ModLoader, Version, VersionFile, VersionId, VersionType,
+    Dependency, ModId, Version, VersionFile, VersionId, VersionType,
 };
 use crate::models::teams::Permissions;
 use crate::routes::mod_creation::{CreateError, UploadedFile};

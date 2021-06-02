@@ -13,8 +13,6 @@ pub use s3_host::S3Host;
 pub enum FileHostingError {
     #[error("Error while accessing the data from backblaze")]
     HttpError(#[from] reqwest::Error),
-    #[error("Backblaze error: {0}")]
-    BackblazeError(serde_json::Value),
     #[error("S3 error: {0}")]
     S3Error(#[from] S3Error),
     #[error("S3 Authentication error: {0}")]

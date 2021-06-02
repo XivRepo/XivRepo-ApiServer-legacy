@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::borrow::Borrow;
 use std::sync::Arc;
-use log::{info, warn};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VersionListFilters {
@@ -37,18 +36,7 @@ pub async fn version_list(
     .exists;
 
     if mod_exists.unwrap_or(false) {
-        let version_ids = database::models::Version::get_mod_versions(
-            id,
-            filters
-                .game_versions
-                .as_ref()
-                .map(|x| serde_json::from_str(x).unwrap_or_default()),
-            filters
-                .loaders
-                .as_ref()
-                .map(|x| serde_json::from_str(x).unwrap_or_default()),
-            &**pool,
-        )
+        let version_ids = database::models::Version::get_mod_versions(id,&**pool)
         .await
         .map_err(|e| ApiError::DatabaseError(e.into()))?;
 
@@ -69,38 +57,6 @@ pub async fn version_list(
             .collect::<Vec<_>>();
 
         versions.sort_by(|a, b| b.date_published.cmp(&a.date_published));
-
-        // Attempt to populate versions with "auto featured" versions
-        if response.is_empty() && !versions.is_empty() && filters.featured.unwrap_or(false) {
-            let loaders = database::models::categories::Loader::list(&**pool).await?;
-            let game_versions =
-                database::models::categories::GameVersion::list_filter(None, Some(true), &**pool)
-                    .await?;
-
-            let mut joined_filters = Vec::new();
-            for game_version in &game_versions {
-                for loader in &loaders {
-                    joined_filters.push((game_version, loader))
-                }
-            }
-
-            joined_filters.into_iter().for_each(|filter| {
-                versions
-                    .iter()
-                    .find(|version| {
-                        version.game_versions.contains(&filter.0)
-                            && version.loaders.contains(&filter.1)
-                    })
-                    .map(|version| response.push(convert_version(version.clone())))
-                    .unwrap_or(());
-            });
-
-            if response.is_empty() {
-                versions
-                    .into_iter()
-                    .for_each(|version| response.push(convert_version(version)));
-            }
-        }
 
         response.sort_by(|a, b| b.date_published.cmp(&a.date_published));
         response.dedup_by(|a, b| a.id == b.id);
@@ -162,7 +118,6 @@ fn convert_version(data: database::models::version_item::QueryVersion) -> models
         id: data.id.into(),
         mod_id: data.mod_id.into(),
         author_id: data.author_id.into(),
-
         featured: data.featured,
         name: data.name,
         version_number: data.version_number,
@@ -214,8 +169,6 @@ pub struct EditVersion {
     pub changelog: Option<String>,
     pub version_type: Option<models::mods::VersionType>,
     pub dependencies: Option<Vec<Dependency>>,
-    pub game_versions: Option<Vec<models::mods::GameVersion>>,
-    pub loaders: Option<Vec<models::mods::ModLoader>>,
     pub featured: Option<bool>,
     pub primary_file: Option<(String, String)>,
 }
@@ -356,78 +309,6 @@ pub async fn version_edit(
                         id as database::models::ids::VersionId,
                         dependency_id as database::models::ids::VersionId,
                         dependency.dependency_type.as_str()
-                    )
-                    .execute(&mut *transaction)
-                    .await
-                    .map_err(|e| ApiError::DatabaseError(e.into()))?;
-                }
-            }
-
-            if let Some(game_versions) = &new_version.game_versions {
-                sqlx::query!(
-                    "
-                    DELETE FROM game_versions_versions WHERE joining_version_id = $1
-                    ",
-                    id as database::models::ids::VersionId,
-                )
-                .execute(&mut *transaction)
-                .await
-                .map_err(|e| ApiError::DatabaseError(e.into()))?;
-
-                for game_version in game_versions {
-                    let game_version_id = database::models::categories::GameVersion::get_id(
-                        &game_version.0,
-                        &mut *transaction,
-                    )
-                    .await?
-                    .ok_or_else(|| {
-                        ApiError::InvalidInputError(
-                            "No database entry for game version provided.".to_string(),
-                        )
-                    })?;
-
-                    sqlx::query!(
-                        "
-                        INSERT INTO game_versions_versions (game_version_id, joining_version_id)
-                        VALUES ($1, $2)
-                        ",
-                        game_version_id as database::models::ids::GameVersionId,
-                        id as database::models::ids::VersionId,
-                    )
-                    .execute(&mut *transaction)
-                    .await
-                    .map_err(|e| ApiError::DatabaseError(e.into()))?;
-                }
-            }
-
-            if let Some(loaders) = &new_version.loaders {
-                sqlx::query!(
-                    "
-                    DELETE FROM loaders_versions WHERE version_id = $1
-                    ",
-                    id as database::models::ids::VersionId,
-                )
-                .execute(&mut *transaction)
-                .await
-                .map_err(|e| ApiError::DatabaseError(e.into()))?;
-
-                for loader in loaders {
-                    let loader_id =
-                        database::models::categories::Loader::get_id(&loader.0, &mut *transaction)
-                            .await?
-                            .ok_or_else(|| {
-                                ApiError::InvalidInputError(
-                                    "No database entry for loader provided.".to_string(),
-                                )
-                            })?;
-
-                    sqlx::query!(
-                        "
-                        INSERT INTO loaders_versions (loader_id, version_id)
-                        VALUES ($1, $2)
-                        ",
-                        loader_id as database::models::ids::LoaderId,
-                        id as database::models::ids::VersionId,
                     )
                     .execute(&mut *transaction)
                     .await

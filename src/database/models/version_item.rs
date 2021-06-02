@@ -335,8 +335,6 @@ impl Version {
 
     pub async fn get_mod_versions<'a, E>(
         mod_id: ModId,
-        game_versions: Option<Vec<String>>,
-        loaders: Option<Vec<String>>,
         exec: E,
     ) -> Result<Vec<VersionId>, sqlx::Error>
     where

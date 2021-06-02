@@ -40,10 +40,6 @@ pub enum CreateError {
     InvalidIconFormat(String),
     #[error("Error with multipart data: {0}")]
     InvalidInput(String),
-    #[error("Invalid game version: {0}")]
-    InvalidGameVersion(String),
-    #[error("Invalid loader: {0}")]
-    InvalidLoader(String),
     #[error("Invalid category: {0}")]
     InvalidCategory(String),
     #[error("Invalid file type for version file: {0}")]
@@ -69,8 +65,6 @@ impl actix_web::ResponseError for CreateError {
             CreateError::MissingValueError(..) => StatusCode::BAD_REQUEST,
             CreateError::InvalidIconFormat(..) => StatusCode::BAD_REQUEST,
             CreateError::InvalidInput(..) => StatusCode::BAD_REQUEST,
-            CreateError::InvalidGameVersion(..) => StatusCode::BAD_REQUEST,
-            CreateError::InvalidLoader(..) => StatusCode::BAD_REQUEST,
             CreateError::InvalidCategory(..) => StatusCode::BAD_REQUEST,
             CreateError::InvalidFileType(..) => StatusCode::BAD_REQUEST,
             CreateError::Unauthorized(..) => StatusCode::UNAUTHORIZED,
@@ -92,8 +86,6 @@ impl actix_web::ResponseError for CreateError {
                 CreateError::MissingValueError(..) => "invalid_input",
                 CreateError::InvalidIconFormat(..) => "invalid_input",
                 CreateError::InvalidInput(..) => "invalid_input",
-                CreateError::InvalidGameVersion(..) => "invalid_input",
-                CreateError::InvalidLoader(..) => "invalid_input",
                 CreateError::InvalidCategory(..) => "invalid_input",
                 CreateError::InvalidFileType(..) => "invalid_input",
                 CreateError::Unauthorized(..) => "unauthorized",
@@ -338,7 +330,7 @@ async fn mod_create_inner(
                 .try_for_each(|v| super::version_creation::check_version(v))?;
         }
 
-        if (create_data.mod_slug.is_none() || create_data.mod_slug.clone().unwrap() == "") {
+        if create_data.mod_slug.is_none() || create_data.mod_slug.clone().unwrap() == "" {
             create_data.mod_slug = Some(slugify!(&create_data.mod_name));
             info!("Mod Slug is none. Converting {} to {}", &create_data.mod_name, slugify!(&create_data.mod_name));
         }
