@@ -5,7 +5,9 @@ use crate::models;
 use crate::models::mods::{Dependency, DependencyType};
 use crate::models::teams::Permissions;
 use crate::{database, Pepper};
+use actix_web::http::header;
 use actix_web::{delete, get, patch, web, HttpRequest, HttpResponse};
+use log::warn;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::borrow::Borrow;
@@ -540,10 +542,20 @@ pub async fn download_version(
 
     if let Some(id) = result {
         let real_ip = req.connection_info();
-        let ip_option = real_ip.borrow().remote_addr();
+        let ip_option = real_ip.borrow().realip_remote_addr();
+
+        for hdr in req.headers().get_all(&header::FORWARDED) {
+            if let Ok(val) = hdr.to_str() {
+                warn!("HDR : {}", val);
+            }
+        }
 
         if let Some(ip) = ip_option {
+            warn!("Version ID : {}", &id.version_id);
+
             let hash = sha1::Sha1::from(format!("{}{}", ip, pepper.pepper)).hexdigest();
+
+            warn!("Hash : {}", &hash);
 
             let download_exists = sqlx::query!(
                 "SELECT EXISTS(SELECT 1 FROM downloads WHERE version_id = $1 AND date > (CURRENT_DATE - INTERVAL '30 minutes ago') AND identifier = $2)",
@@ -554,6 +566,9 @@ pub async fn download_version(
                 .await
                 .map_err(|e| ApiError::DatabaseError(e.into()))?
                 .exists.unwrap_or(false);
+
+            warn!("Does Download exist for IP? : {}", &download_exists);
+            warn!("-----------------------------------");
 
             if !download_exists {
                 sqlx::query!(
