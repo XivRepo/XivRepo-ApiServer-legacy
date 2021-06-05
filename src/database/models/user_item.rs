@@ -10,6 +10,7 @@ pub struct User {
     pub bio: Option<String>,
     pub created: chrono::DateTime<chrono::Utc>,
     pub role: String,
+    pub show_nsfw: bool,
 }
 
 impl User {
@@ -50,7 +51,7 @@ impl User {
             "
             SELECT u.discord_id, u.name, u.email,
                 u.avatar_url, u.username, u.bio,
-                u.created, u.role
+                u.created, u.role, u.show_nsfw
             FROM users u
             WHERE u.id = $1
             ",
@@ -70,6 +71,7 @@ impl User {
                 bio: row.bio,
                 created: row.created,
                 role: row.role,
+                show_nsfw: row.show_nsfw,
             }))
         } else {
             Ok(None)
@@ -87,7 +89,7 @@ impl User {
             "
             SELECT u.id, u.name, u.email,
                 u.avatar_url, u.username, u.bio,
-                u.created, u.role
+                u.created, u.role, u.show_nsfw
             FROM users u
             WHERE u.discord_id = $1
             ",
@@ -107,6 +109,7 @@ impl User {
                 bio: row.bio,
                 created: row.created,
                 role: row.role,
+                show_nsfw: row.show_nsfw,
             }))
         } else {
             Ok(None)
@@ -124,7 +127,7 @@ impl User {
             "
             SELECT u.id, u.discord_id, u.name, u.email,
                 u.avatar_url, u.bio,
-                u.created, u.role
+                u.created, u.role, u.show_nsfw
             FROM users u
             WHERE LOWER(u.username) = LOWER($1)
             ",
@@ -144,6 +147,7 @@ impl User {
                 bio: row.bio,
                 created: row.created,
                 role: row.role,
+                show_nsfw: row.show_nsfw,
             }))
         } else {
             Ok(None)
@@ -161,7 +165,7 @@ impl User {
             "
             SELECT u.id, u.discord_id, u.name, u.email,
                 u.avatar_url, u.username, u.bio,
-                u.created, u.role FROM users u
+                u.created, u.role, u.show_nsfw FROM users u
             WHERE u.id IN (SELECT * FROM UNNEST($1::bigint[]))
             ",
             &user_ids_parsed
@@ -178,6 +182,7 @@ impl User {
                 bio: u.bio,
                 created: u.created,
                 role: u.role,
+                show_nsfw: u.show_nsfw
             }))
         })
         .try_collect::<Vec<User>>()

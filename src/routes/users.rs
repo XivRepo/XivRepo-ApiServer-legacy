@@ -117,6 +117,7 @@ fn convert_user(data: crate::database::models::user_item::User) -> crate::models
         bio: data.bio,
         created: data.created,
         role: Role::from_string(&*data.role),
+        show_nsfw: data.show_nsfw,
     }
 }
 
@@ -191,6 +192,7 @@ pub struct EditUser {
     )]
     pub bio: Option<Option<String>>,
     pub role: Option<String>,
+    pub show_nsfw: Option<bool>,
 }
 
 #[patch("{id}")]
@@ -287,6 +289,21 @@ pub async fn user_edit(
                     WHERE (id = $2)
                     ",
                 role,
+                id as crate::database::models::ids::UserId,
+            )
+            .execute(&mut *transaction)
+            .await
+            .map_err(|e| ApiError::DatabaseError(e.into()))?;
+        }
+
+        if let Some(show_nsfw) = &new_user.show_nsfw {
+            sqlx::query!(
+                "
+                    UPDATE users
+                    SET show_nsfw = $1
+                    WHERE (id = $2)
+                    ",
+                    show_nsfw,
                 id as crate::database::models::ids::UserId,
             )
             .execute(&mut *transaction)

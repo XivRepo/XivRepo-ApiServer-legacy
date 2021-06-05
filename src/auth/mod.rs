@@ -67,6 +67,7 @@ where
             bio: result.bio,
             created: result.created,
             role: Role::from_string(&*result.role),
+            show_nsfw: result.show_nsfw,
         }),
         None => Err(AuthenticationError::InvalidCredentialsError),
     }

@@ -2,7 +2,7 @@ use crate::auth::{get_user_from_headers, AuthenticationError};
 use crate::database::models;
 use crate::file_hosting::{FileHost, FileHostingError};
 use crate::models::error::ApiError;
-use crate::models::mods::{DonationLink, License, ModId, ModStatus, SideType, VersionId};
+use crate::models::mods::{DonationLink, ModId, ModStatus, VersionId};
 use crate::models::users::UserId;
 use crate::routes::version_creation::InitialVersionData;
 use crate::search::indexing::{queue::CreationQueue, IndexingError};
@@ -11,7 +11,7 @@ use actix_web::http::StatusCode;
 use actix_web::web::Data;
 use actix_web::{post, HttpRequest, HttpResponse};
 use futures::stream::StreamExt;
-use log::info;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use std::sync::Arc;
@@ -107,6 +107,8 @@ struct ModCreateData {
     pub mod_description: String,
     /// A long description of the mod, in markdown.
     pub mod_body: String,
+    /// If mod is NSFW
+    pub is_nsfw: bool,
     /// A list of initial versions to upload with the created mod
     pub initial_versions: Vec<InitialVersionData>,
     /// A list of the categories that the mod is in.
@@ -117,18 +119,10 @@ struct ModCreateData {
     pub source_url: Option<String>,
     /// An optional link to the mod's wiki page or other relevant information.
     pub wiki_url: Option<String>,
-    /// An optional link to the mod's license page
-    pub license_url: Option<String>,
     /// An optional link to the mod's discord.
     pub discord_url: Option<String>,
     /// An optional boolean. If true, the mod will be created as a draft.
     pub is_draft: Option<bool>,
-    /// The support range for the client mod
-    pub client_side: SideType,
-    /// The support range for the server mod
-    pub server_side: SideType,
-    /// The license id that the mod follows
-    pub license_id: String,
     /// An optional list of all donation links the mod has
     pub donation_urls: Option<Vec<DonationLink>>,
 }
@@ -320,9 +314,6 @@ async fn mod_create_inner(
             if let Some(url) = &create_data.discord_url {
                 check_length(..=2048, "url", url)?;
             }
-            if let Some(url) = &create_data.license_url {
-                check_length(..=2048, "url", url)?;
-            }
 
             create_data
                 .initial_versions
@@ -341,7 +332,7 @@ async fn mod_create_inner(
             let slug_modid: models::ids::ModId = slug_modid.into();
             let results = sqlx::query!(
                 "
-                SELECT EXISTS(SELECT 1 FROM mods WHERE id=$1)
+                SELECT COUNT(slug) FROM mods WHERE id=$1
                 ",
                 slug_modid as models::ids::ModId
             )
@@ -349,8 +340,12 @@ async fn mod_create_inner(
             .await
             .map_err(|e| CreateError::DatabaseError(e.into()))?;
 
-            if results.exists.unwrap_or(true) {
+            warn!("{:?}", &results);
+
+            let count = results.count.unwrap_or(0);
+            if count > 1 {
                 return Err(CreateError::SlugCollision);
+                
             }
         }
 
@@ -481,30 +476,7 @@ async fn mod_create_inner(
             .ok_or_else(|| {
                 CreateError::InvalidInput(format!("Status {} does not exist.", status.clone()))
             })?;
-        let client_side_id =
-            models::SideTypeId::get_id(&mod_create_data.client_side, &mut *transaction)
-                .await?
-                .ok_or_else(|| {
-                    CreateError::InvalidInput(
-                        "Client side type specified does not exist.".to_string(),
-                    )
-                })?;
 
-        let server_side_id =
-            models::SideTypeId::get_id(&mod_create_data.server_side, &mut *transaction)
-                .await?
-                .ok_or_else(|| {
-                    CreateError::InvalidInput(
-                        "Server side type specified does not exist.".to_string(),
-                    )
-                })?;
-
-        let license_id =
-            models::categories::License::get_id(&mod_create_data.license_id, &mut *transaction)
-                .await?
-                .ok_or_else(|| {
-                    CreateError::InvalidInput("License specified does not exist.".to_string())
-                })?;
         let mut donation_urls = vec![];
 
         if let Some(urls) = &mod_create_data.donation_urls {
@@ -538,15 +510,11 @@ async fn mod_create_inner(
             issues_url: mod_create_data.issues_url,
             source_url: mod_create_data.source_url,
             wiki_url: mod_create_data.wiki_url,
-
-            license_url: mod_create_data.license_url,
             discord_url: mod_create_data.discord_url,
             categories,
             initial_versions: versions,
             status: status_id,
-            client_side: client_side_id,
-            server_side: server_side_id,
-            license: license_id,
+            is_nsfw: mod_create_data.is_nsfw,
             slug: mod_create_data.mod_slug.unwrap(),
             donation_urls,
         };
@@ -564,13 +532,7 @@ async fn mod_create_inner(
             published: now,
             updated: now,
             status: status.clone(),
-            license: License {
-                id: mod_create_data.license_id.clone(),
-                name: "".to_string(),
-                url: mod_builder.license_url.clone(),
-            },
-            client_side: mod_create_data.client_side,
-            server_side: mod_create_data.server_side,
+            is_nsfw: mod_builder.is_nsfw,
             downloads: 0,
             followers: 0,
             categories: mod_create_data.categories,

@@ -285,11 +285,8 @@ fn default_settings() -> Settings {
         "author_url".to_string(),
         "date_created".to_string(),
         "date_modified".to_string(),
-        "latest_version".to_string(),
-        "license".to_string(),
-        "client_side".to_string(),
-        "server_side".to_string(),
         "host".to_string(),
+        "is_nsfw".to_string(),
     ];
 
     let searchable_attributes = vec![
@@ -298,6 +295,7 @@ fn default_settings() -> Settings {
         "categories".to_string(),
         "versions".to_string(),
         "author".to_string(),
+        "is_nsfw".to_string(),
     ];
 
     let stop_words: Vec<String> = Vec::new();
@@ -312,9 +310,6 @@ fn default_settings() -> Settings {
             String::from("categories"),
             String::from("host"),
             String::from("versions"),
-            String::from("license"),
-            String::from("client_side"),
-            String::from("server_side"),
         ])
 }
 

@@ -44,14 +44,11 @@ pub struct ModBuilder {
     pub issues_url: Option<String>,
     pub source_url: Option<String>,
     pub wiki_url: Option<String>,
-    pub license_url: Option<String>,
     pub discord_url: Option<String>,
     pub categories: Vec<CategoryId>,
     pub initial_versions: Vec<super::version_item::VersionBuilder>,
     pub status: StatusId,
-    pub client_side: SideTypeId,
-    pub server_side: SideTypeId,
-    pub license: LicenseId,
+    pub is_nsfw: bool,
     pub slug: String,
     pub donation_urls: Vec<DonationUrl>,
 }
@@ -71,17 +68,14 @@ impl ModBuilder {
             published: chrono::Utc::now(),
             updated: chrono::Utc::now(),
             status: self.status,
+            is_nsfw: self.is_nsfw,
             downloads: 0,
             follows: 0,
             icon_url: self.icon_url,
             issues_url: self.issues_url,
             source_url: self.source_url,
             wiki_url: self.wiki_url,
-            license_url: self.license_url,
             discord_url: self.discord_url,
-            client_side: self.client_side,
-            server_side: self.server_side,
-            license: self.license,
             slug: Some(self.slug),
         };
         mod_struct.insert(&mut *transaction).await?;
@@ -123,17 +117,14 @@ pub struct Mod {
     pub published: chrono::DateTime<chrono::Utc>,
     pub updated: chrono::DateTime<chrono::Utc>,
     pub status: StatusId,
+    pub is_nsfw: bool,
     pub downloads: i32,
     pub follows: i32,
     pub icon_url: Option<String>,
     pub issues_url: Option<String>,
     pub source_url: Option<String>,
     pub wiki_url: Option<String>,
-    pub license_url: Option<String>,
     pub discord_url: Option<String>,
-    pub client_side: SideTypeId,
-    pub server_side: SideTypeId,
-    pub license: LicenseId,
     pub slug: Option<String>,
 }
 
@@ -148,15 +139,13 @@ impl Mod {
                 id, team_id, title, description, body,
                 published, downloads, icon_url, issues_url,
                 source_url, wiki_url, status, discord_url,
-                client_side, server_side, license_url, license,
-                slug
+                slug, is_nsfw
             )
             VALUES (
                 $1, $2, $3, $4, $5,
                 $6, $7, $8, $9,
                 $10, $11, $12, $13,
-                $14, $15, $16, $17,
-                LOWER($18)
+                LOWER($14), $15
             )
             ",
             self.id as ModId,
@@ -172,11 +161,8 @@ impl Mod {
             self.wiki_url.as_ref(),
             self.status.0,
             self.discord_url.as_ref(),
-            self.client_side as SideTypeId,
-            self.server_side as SideTypeId,
-            self.license_url.as_ref(),
-            self.license as LicenseId,
-            self.slug.as_ref()
+            self.slug.as_ref(),
+            self.is_nsfw
         )
         .execute(&mut *transaction)
         .await?;
@@ -192,9 +178,9 @@ impl Mod {
             "
             SELECT title, description, downloads, follows,
                    icon_url, body, body_url, published,
-                   updated, status,
-                   issues_url, source_url, wiki_url, discord_url, license_url,
-                   team_id, client_side, server_side, license, slug
+                   updated, status, is_nsfw,
+                   issues_url, source_url, wiki_url, discord_url,
+                   team_id, slug
             FROM mods
             WHERE id = $1
             ",
@@ -217,15 +203,12 @@ impl Mod {
                 issues_url: row.issues_url,
                 source_url: row.source_url,
                 wiki_url: row.wiki_url,
-                license_url: row.license_url,
                 discord_url: row.discord_url,
-                client_side: SideTypeId(row.client_side),
                 status: StatusId(row.status),
-                server_side: SideTypeId(row.server_side),
-                license: LicenseId(row.license),
                 slug: row.slug,
                 body: row.body,
                 follows: row.follows,
+                is_nsfw: row.is_nsfw,
             }))
         } else {
             Ok(None)
@@ -243,9 +226,9 @@ impl Mod {
             "
             SELECT id, title, description, downloads, follows,
                    icon_url, body, body_url, published,
-                   updated, status,
-                   issues_url, source_url, wiki_url, discord_url, license_url,
-                   team_id, client_side, server_side, license, slug
+                   updated, status, is_nsfw,
+                   issues_url, source_url, wiki_url, discord_url,
+                   team_id, slug
             FROM mods
             WHERE id IN (SELECT * FROM UNNEST($1::bigint[]))
             ",
@@ -266,12 +249,9 @@ impl Mod {
                 issues_url: m.issues_url,
                 source_url: m.source_url,
                 wiki_url: m.wiki_url,
-                license_url: m.license_url,
                 discord_url: m.discord_url,
-                client_side: SideTypeId(m.client_side),
                 status: StatusId(m.status),
-                server_side: SideTypeId(m.server_side),
-                license: LicenseId(m.license),
+                is_nsfw: m.is_nsfw,
                 slug: m.slug,
                 body: m.body,
                 follows: m.follows,
@@ -439,22 +419,19 @@ impl Mod {
         let result = sqlx::query!(
             "
             SELECT m.id id, m.title title, m.description description, m.downloads downloads, m.follows follows,
-            m.icon_url icon_url, m.body body, m.body_url body_url, m.published published,
+            m.icon_url icon_url, m.body body, m.body_url body_url, m.published published, m.is_nsfw,
             m.updated updated, m.status status,
-            m.issues_url issues_url, m.source_url source_url, m.wiki_url wiki_url, m.discord_url discord_url, m.license_url license_url,
-            m.team_id team_id, m.client_side client_side, m.server_side server_side, m.license license, m.slug slug,
-            s.status status_name, cs.name client_side_type, ss.name server_side_type, l.short short, l.name license_name,
+            m.issues_url issues_url, m.source_url source_url, m.wiki_url wiki_url, m.discord_url discord_url,
+            m.team_id team_id, m.slug slug,
+            s.status status_name,
             STRING_AGG(DISTINCT c.category, ',') categories, STRING_AGG(DISTINCT v.id::text, ',') versions
             FROM mods m
             LEFT OUTER JOIN mods_categories mc ON joining_mod_id = m.id
             LEFT OUTER JOIN categories c ON mc.joining_category_id = c.id
             LEFT OUTER JOIN versions v ON v.mod_id = m.id
             INNER JOIN statuses s ON s.id = m.status
-            INNER JOIN side_types cs ON m.client_side = cs.id
-            INNER JOIN side_types ss ON m.server_side = ss.id
-            INNER JOIN licenses l ON m.license = l.id
             WHERE m.id = $1
-            GROUP BY m.id, s.id, cs.id, ss.id, l.id;
+            GROUP BY m.id, s.id;
             ",
             id as ModId,
         )
@@ -476,12 +453,9 @@ impl Mod {
                     issues_url: m.issues_url.clone(),
                     source_url: m.source_url.clone(),
                     wiki_url: m.wiki_url.clone(),
-                    license_url: m.license_url.clone(),
                     discord_url: m.discord_url.clone(),
-                    client_side: SideTypeId(m.client_side),
                     status: StatusId(m.status),
-                    server_side: SideTypeId(m.server_side),
-                    license: LicenseId(m.license),
+                    is_nsfw: m.is_nsfw,
                     slug: m.slug.clone(),
                     body: m.body.clone(),
                     follows: m.follows,
@@ -500,10 +474,6 @@ impl Mod {
                     .collect(),
                 donation_urls: vec![],
                 status: crate::models::mods::ModStatus::from_str(&m.status_name),
-                license_id: m.short,
-                license_name: m.license_name,
-                client_side: crate::models::mods::SideType::from_str(&m.client_side_type),
-                server_side: crate::models::mods::SideType::from_str(&m.server_side_type),
             }))
         } else {
             Ok(None)
@@ -523,22 +493,19 @@ impl Mod {
         sqlx::query!(
             "
             SELECT m.id id, m.title title, m.description description, m.downloads downloads, m.follows follows,
-            m.icon_url icon_url, m.body body, m.body_url body_url, m.published published,
+            m.icon_url icon_url, m.body body, m.body_url body_url, m.published published, m.is_nsfw,
             m.updated updated, m.status status,
-            m.issues_url issues_url, m.source_url source_url, m.wiki_url wiki_url, m.discord_url discord_url, m.license_url license_url,
-            m.team_id team_id, m.client_side client_side, m.server_side server_side, m.license license, m.slug slug,
-            s.status status_name, cs.name client_side_type, ss.name server_side_type, l.short short, l.name license_name,
+            m.issues_url issues_url, m.source_url source_url, m.wiki_url wiki_url, m.discord_url discord_url,
+            m.team_id team_id, m.slug slug,
+            s.status status_name,
             STRING_AGG(DISTINCT c.category, ',') categories, STRING_AGG(DISTINCT v.id::text, ',') versions
             FROM mods m
             LEFT OUTER JOIN mods_categories mc ON joining_mod_id = m.id
             LEFT OUTER JOIN categories c ON mc.joining_category_id = c.id
             LEFT OUTER JOIN versions v ON v.mod_id = m.id
             INNER JOIN statuses s ON s.id = m.status
-            INNER JOIN side_types cs ON m.client_side = cs.id
-            INNER JOIN side_types ss ON m.server_side = ss.id
-            INNER JOIN licenses l ON m.license = l.id
             WHERE m.id IN (SELECT * FROM UNNEST($1::bigint[]))
-            GROUP BY m.id, s.id, cs.id, ss.id, l.id;
+            GROUP BY m.id, s.id;
             ",
             &mod_ids_parsed
         )
@@ -558,12 +525,9 @@ impl Mod {
                         issues_url: m.issues_url.clone(),
                         source_url: m.source_url.clone(),
                         wiki_url: m.wiki_url.clone(),
-                        license_url: m.license_url.clone(),
                         discord_url: m.discord_url.clone(),
-                        client_side: SideTypeId(m.client_side),
                         status: StatusId(m.status),
-                        server_side: SideTypeId(m.server_side),
-                        license: LicenseId(m.license),
+                        is_nsfw: m.is_nsfw,
                         slug: m.slug.clone(),
                         body: m.body.clone(),
                         follows: m.follows
@@ -572,10 +536,6 @@ impl Mod {
                     versions: m.versions.unwrap_or_default().split(',').map(|x| VersionId(x.parse().unwrap_or_default())).collect(),
                     donation_urls: vec![],
                     status: crate::models::mods::ModStatus::from_str(&m.status_name),
-                    license_id: m.short,
-                    license_name: m.license_name,
-                    client_side: crate::models::mods::SideType::from_str(&m.client_side_type),
-                    server_side: crate::models::mods::SideType::from_str(&m.server_side_type),
                 }))
             })
             .try_collect::<Vec<QueryMod>>()
@@ -590,8 +550,4 @@ pub struct QueryMod {
     pub versions: Vec<VersionId>,
     pub donation_urls: Vec<DonationUrl>,
     pub status: crate::models::mods::ModStatus,
-    pub license_id: String,
-    pub license_name: String,
-    pub client_side: crate::models::mods::SideType,
-    pub server_side: crate::models::mods::SideType,
 }

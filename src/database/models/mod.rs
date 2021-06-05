@@ -82,27 +82,6 @@ impl ids::StatusId {
     }
 }
 
-impl ids::SideTypeId {
-    pub async fn get_id<'a, E>(
-        side: &crate::models::mods::SideType,
-        exec: E,
-    ) -> Result<Option<Self>, DatabaseError>
-    where
-        E: sqlx::Executor<'a, Database = sqlx::Postgres>,
-    {
-        let result = sqlx::query!(
-            "
-            SELECT id FROM side_types
-            WHERE name = $1
-            ",
-            side.as_str()
-        )
-        .fetch_optional(exec)
-        .await?;
-
-        Ok(result.map(|r| ids::SideTypeId(r.id)))
-    }
-}
 
 impl ids::DonationPlatformId {
     pub async fn get_id<'a, E>(id: &str, exec: E) -> Result<Option<Self>, DatabaseError>

@@ -2,7 +2,7 @@ use crate::auth::get_user_from_headers;
 use crate::database;
 use crate::file_hosting::FileHost;
 use crate::models;
-use crate::models::mods::{DonationLink, License, ModId, ModStatus, SearchRequest, SideType};
+use crate::models::mods::{DonationLink, ModId, ModStatus, SearchRequest};
 use crate::models::teams::Permissions;
 use crate::routes::ApiError;
 use crate::search::indexing::queue::CreationQueue;
@@ -18,8 +18,11 @@ use std::sync::Arc;
 pub async fn mod_search(
     web::Query(info): web::Query<SearchRequest>,
     config: web::Data<SearchConfig>,
+    req: HttpRequest,
+    pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, SearchError> {
-    let results = search_for_mod(&info, &**config).await?;
+    let user = get_user_from_headers(&req.headers(), &**pool).await.ok();
+    let results = search_for_mod(&info, &**config, user).await?;
     Ok(HttpResponse::Ok().json(results))
 }
 
@@ -206,13 +209,7 @@ pub fn convert_mod(data: database::models::mod_item::QueryMod) -> models::mods::
         published: m.published,
         updated: m.updated,
         status: data.status,
-        license: License {
-            id: data.license_id,
-            name: data.license_name,
-            url: m.license_url,
-        },
-        client_side: data.client_side,
-        server_side: data.server_side,
+        is_nsfw: m.is_nsfw,
         downloads: m.downloads as u32,
         followers: m.follows as u32,
         categories: data.categories,
@@ -266,17 +263,8 @@ pub struct EditMod {
         skip_serializing_if = "Option::is_none",
         with = "::serde_with::rust::double_option"
     )]
-    pub license_url: Option<Option<String>>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "::serde_with::rust::double_option"
-    )]
     pub discord_url: Option<Option<String>>,
     pub donation_urls: Option<Vec<DonationLink>>,
-    pub license_id: Option<String>,
-    pub client_side: Option<SideType>,
-    pub server_side: Option<SideType>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -574,36 +562,6 @@ pub async fn mod_edit(
                 .map_err(|e| ApiError::DatabaseError(e.into()))?;
             }
 
-            if let Some(license_url) = &new_mod.license_url {
-                if !perms.contains(Permissions::EDIT_DETAILS) {
-                    return Err(ApiError::CustomAuthenticationError(
-                        "You do not have the permissions to edit the license URL of this mod!"
-                            .to_string(),
-                    ));
-                }
-
-                if let Some(license) = license_url {
-                    if license.len() > 2048 {
-                        return Err(ApiError::InvalidInputError(
-                            "The mod's license url must be less than 2048 characters!".to_string(),
-                        ));
-                    }
-                }
-
-                sqlx::query!(
-                    "
-                    UPDATE mods
-                    SET license_url = $1
-                    WHERE (id = $2)
-                    ",
-                    license_url.as_deref(),
-                    id as database::models::ids::ModId,
-                )
-                .execute(&mut *transaction)
-                .await
-                .map_err(|e| ApiError::DatabaseError(e.into()))?;
-            }
-
             if let Some(discord_url) = &new_mod.discord_url {
                 if !perms.contains(Permissions::EDIT_DETAILS) {
                     return Err(ApiError::CustomAuthenticationError(
@@ -677,87 +635,6 @@ pub async fn mod_edit(
                     WHERE (id = $2)
                     ",
                     slug.as_deref(),
-                    id as database::models::ids::ModId,
-                )
-                .execute(&mut *transaction)
-                .await
-                .map_err(|e| ApiError::DatabaseError(e.into()))?;
-            }
-
-            if let Some(new_side) = &new_mod.client_side {
-                if !perms.contains(Permissions::EDIT_DETAILS) {
-                    return Err(ApiError::CustomAuthenticationError(
-                        "You do not have the permissions to edit the side type of this mod!"
-                            .to_string(),
-                    ));
-                }
-
-                let side_type_id =
-                    database::models::SideTypeId::get_id(new_side, &mut *transaction)
-                        .await?
-                        .expect("No database entry found for side type");
-
-                sqlx::query!(
-                    "
-                    UPDATE mods
-                    SET client_side = $1
-                    WHERE (id = $2)
-                    ",
-                    side_type_id as database::models::SideTypeId,
-                    id as database::models::ids::ModId,
-                )
-                .execute(&mut *transaction)
-                .await
-                .map_err(|e| ApiError::DatabaseError(e.into()))?;
-            }
-
-            if let Some(new_side) = &new_mod.server_side {
-                if !perms.contains(Permissions::EDIT_DETAILS) {
-                    return Err(ApiError::CustomAuthenticationError(
-                        "You do not have the permissions to edit the side type of this mod!"
-                            .to_string(),
-                    ));
-                }
-
-                let side_type_id =
-                    database::models::SideTypeId::get_id(new_side, &mut *transaction)
-                        .await?
-                        .expect("No database entry found for side type");
-
-                sqlx::query!(
-                    "
-                    UPDATE mods
-                    SET server_side = $1
-                    WHERE (id = $2)
-                    ",
-                    side_type_id as database::models::SideTypeId,
-                    id as database::models::ids::ModId,
-                )
-                .execute(&mut *transaction)
-                .await
-                .map_err(|e| ApiError::DatabaseError(e.into()))?;
-            }
-
-            if let Some(license) = &new_mod.license_id {
-                if !perms.contains(Permissions::EDIT_DETAILS) {
-                    return Err(ApiError::CustomAuthenticationError(
-                        "You do not have the permissions to edit the license of this mod!"
-                            .to_string(),
-                    ));
-                }
-
-                let license_id =
-                    database::models::categories::License::get_id(license, &mut *transaction)
-                        .await?
-                        .expect("No database entry found for license");
-
-                sqlx::query!(
-                    "
-                    UPDATE mods
-                    SET license = $1
-                    WHERE (id = $2)
-                    ",
-                    license_id as database::models::LicenseId,
                     id as database::models::ids::ModId,
                 )
                 .execute(&mut *transaction)

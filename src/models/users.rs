@@ -19,6 +19,7 @@ pub struct User {
     pub bio: Option<String>,
     pub created: chrono::DateTime<chrono::Utc>,
     pub role: Role,
+    pub show_nsfw: bool
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]

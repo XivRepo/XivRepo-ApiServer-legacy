@@ -39,13 +39,8 @@ pub struct Mod {
     pub updated: DateTime<Utc>,
     /// The status of the mod
     pub status: ModStatus,
-    /// The license of this mod
-    pub license: License,
-
-    /// The support range for the client mod
-    pub client_side: SideType,
-    /// The support range for the server mod
-    pub server_side: SideType,
+    /// If the mod is NSFW
+    pub is_nsfw: bool,
 
     /// The total number of downloads the mod has had.
     pub downloads: u32,
@@ -70,48 +65,6 @@ pub struct Mod {
     pub donation_urls: Option<Vec<DonationLink>>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "kebab-case")]
-pub enum SideType {
-    Required,
-    Optional,
-    Unsupported,
-    Unknown,
-}
-
-impl std::fmt::Display for SideType {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "{}", self.as_str())
-    }
-}
-
-impl SideType {
-    // These are constant, so this can remove unneccessary allocations (`to_string`)
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            SideType::Required => "required",
-            SideType::Optional => "optional",
-            SideType::Unsupported => "unsupported",
-            SideType::Unknown => "unknown",
-        }
-    }
-
-    pub fn from_str(string: &str) -> SideType {
-        match string {
-            "required" => SideType::Required,
-            "optional" => SideType::Optional,
-            "unsupported" => SideType::Unsupported,
-            _ => SideType::Unknown,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct License {
-    pub id: String,
-    pub name: String,
-    pub url: Option<String>,
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DonationLink {

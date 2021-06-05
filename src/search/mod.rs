@@ -1,4 +1,6 @@
+use crate::auth::AuthenticationError;
 use crate::models::error::ApiError;
+use crate::models::users::User;
 use crate::models::mods::SearchRequest;
 use actix_web::http::StatusCode;
 use actix_web::web::HttpResponse;
@@ -24,6 +26,8 @@ pub enum SearchError {
     EnvError(#[from] dotenv::Error),
     #[error("Invalid index to sort by: {0}")]
     InvalidIndex(String),
+    #[error("Authentication Error: {0}")]
+    Unauthorized(#[from] AuthenticationError),
 }
 
 impl actix_web::ResponseError for SearchError {
@@ -34,6 +38,7 @@ impl actix_web::ResponseError for SearchError {
             SearchError::SerDeError(..) => StatusCode::BAD_REQUEST,
             SearchError::IntParsingError(..) => StatusCode::BAD_REQUEST,
             SearchError::InvalidIndex(..) => StatusCode::BAD_REQUEST,
+            SearchError::Unauthorized(..) => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -45,6 +50,7 @@ impl actix_web::ResponseError for SearchError {
                 SearchError::SerDeError(..) => "invalid_input",
                 SearchError::IntParsingError(..) => "invalid_input",
                 SearchError::InvalidIndex(..) => "invalid_input",
+                SearchError::Unauthorized(..) => "unauthorized",
             },
             description: &self.to_string(),
         })
@@ -67,16 +73,12 @@ pub struct UploadSearchMod {
     pub title: String,
     pub description: String,
     pub categories: Vec<Cow<'static, str>>,
-    pub versions: Vec<String>,
     pub follows: i32,
     pub downloads: i32,
     pub page_url: String,
     pub icon_url: String,
     pub author_url: String,
-    pub latest_version: Cow<'static, str>,
-    pub license: String,
-    pub client_side: String,
-    pub server_side: String,
+    pub is_nsfw: bool,
 
     /// RFC 3339 formatted creation date of the mod
     pub date_created: DateTime<Utc>,
@@ -106,22 +108,17 @@ pub struct ResultSearchMod {
     pub title: String,
     pub description: String,
     pub categories: Vec<String>,
-    // TODO: more efficient format for listing versions, without many repetitions
-    pub versions: Vec<String>,
     pub downloads: i32,
     pub follows: i32,
     pub page_url: String,
     pub icon_url: String,
     pub author_url: String,
+    pub is_nsfw: bool,
+
     /// RFC 3339 formatted creation date of the mod
     pub date_created: String,
     /// RFC 3339 formatted modification date of the mod
     pub date_modified: String,
-    pub latest_version: String,
-    pub license: String,
-    pub client_side: String,
-    pub server_side: String,
-
     /// The host of the mod: Either `modrinth` or `curseforge`
     pub host: String,
 }
@@ -145,15 +142,27 @@ impl Document for ResultSearchMod {
 pub async fn search_for_mod(
     info: &SearchRequest,
     config: &SearchConfig,
+    user: Option<User>,
 ) -> Result<SearchResults, SearchError> {
     let client = Client::new(&*config.address, &*config.key);
 
-    let filters: Cow<_> = match (info.filters.as_deref(), info.version.as_deref()) {
-        (Some(f), Some(v)) => format!("({}) AND ({})", f, v).into(),
-        (Some(f), None) => f.into(),
-        (None, Some(v)) => v.into(),
-        (None, None) => "".into(),
-    };
+    //let filters: Cow<_> = match (info.filters.as_deref(), info.version.as_deref()) {
+    //    (Some(f), Some(v)) => format!("({}) AND ({})", f, v).into(),
+    //    (Some(f), None) => f.into(),
+    //    (None, Some(v)) => v.into(),
+    //    (None, None) => "".into(),
+    //};
+
+    let mut filters = "";
+    if user.is_some() {
+        let search_user = user.unwrap();
+        if !search_user.show_nsfw {
+            filters = "is_nsfw != 'true'";
+        }
+    }
+    else {
+        filters = "is_nsfw != 'true'";
+    }
 
     let offset = info.offset.as_deref().unwrap_or("0").parse()?;
     let index = info.index.as_deref().unwrap_or("relevance");

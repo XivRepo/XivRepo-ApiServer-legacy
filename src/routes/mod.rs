@@ -114,7 +114,7 @@ pub enum ApiError {
     #[error("Internal server error: {0}")]
     DatabaseError(#[from] crate::database::models::DatabaseError),
     #[error("Internal server error: {0}")]
-    XmlError(String),
+    _XmlError(String),
     #[error("Deserialization error: {0}")]
     JsonError(#[from] serde_json::Error),
     #[error("Authentication Error: {0}")]
@@ -136,7 +136,7 @@ impl actix_web::ResponseError for ApiError {
             ApiError::DatabaseError(..) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::AuthenticationError(..) => actix_web::http::StatusCode::UNAUTHORIZED,
             ApiError::CustomAuthenticationError(..) => actix_web::http::StatusCode::UNAUTHORIZED,
-            ApiError::XmlError(..) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::_XmlError(..) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::JsonError(..) => actix_web::http::StatusCode::BAD_REQUEST,
             ApiError::SearchError(..) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::IndexingError(..) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -153,7 +153,7 @@ impl actix_web::ResponseError for ApiError {
                     ApiError::DatabaseError(..) => "database_error",
                     ApiError::AuthenticationError(..) => "unauthorized",
                     ApiError::CustomAuthenticationError(..) => "unauthorized",
-                    ApiError::XmlError(..) => "xml_error",
+                    ApiError::_XmlError(..) => "xml_error",
                     ApiError::JsonError(..) => "json_error",
                     ApiError::SearchError(..) => "search_error",
                     ApiError::IndexingError(..) => "indexing_error",
