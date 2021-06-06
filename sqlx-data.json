@@ -1085,6 +1085,24 @@
       ]
     }
   },
+  "38f2a56386fcd3f0afd03411ada6e763ebf2a32530c4fc6abc31dc2a471b2207": {
+    "query": "SELECT COUNT(*) FROM mods WHERE is_nsfw = false",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
   "398ac436f5fe2f6a66544204b9ff01ae1ea1204edf03ffc16de657a861cfe0ba": {
     "query": "\n            DELETE FROM categories\n            WHERE category = $1\n            ",
     "describe": {
@@ -2813,6 +2831,26 @@
       ]
     }
   },
+  "9995936b732612f478746baec291d045041b93bc2a2ec4d0829ed83ad0336c38": {
+    "query": "SELECT x.id id FROM \n                ( \n                    SELECT id, ROW_NUMBER() OVER (ORDER BY published) \n                    FROM mods\n                    WHERE status = 1\n                    AND is_nsfw IS NOT NULL\n                ) x \n            WHERE ROW_NUMBER = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "99a1eac69d7f5a5139703df431e6a5c3012a90143a8c635f93632f04d0bc41d4": {
     "query": "\n                    UPDATE mods\n                    SET wiki_url = $1\n                    WHERE (id = $2)\n                    ",
     "describe": {
@@ -3462,6 +3500,26 @@
         null,
         null,
         null
+      ]
+    }
+  },
+  "b0d6a41dea769e8a798932741605320cbc86cb20cc0dd9585c0fdb96267f8e48": {
+    "query": "SELECT x.id id FROM \n                ( \n                    SELECT id, ROW_NUMBER() OVER (ORDER BY published) \n                    FROM mods\n                    WHERE status = 1\n                    AND is_nsfw IS FALSE\n                ) x \n            WHERE ROW_NUMBER = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false
       ]
     }
   },
@@ -4601,6 +4659,24 @@
       },
       "nullable": [
         false
+      ]
+    }
+  },
+  "f1e08a825170f280a8ca47366b9e0584efbdc5b75bcd794a719d721d21014691": {
+    "query": "SELECT COUNT(*) FROM mods",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "count",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        null
       ]
     }
   },
