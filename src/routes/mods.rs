@@ -10,6 +10,7 @@ use crate::search::{search_for_mod, SearchConfig, SearchError};
 use actix_web::web::Data;
 use actix_web::{delete, get, patch, post, web, HttpRequest, HttpResponse};
 use futures::StreamExt;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -159,6 +160,132 @@ pub async fn mod_get(
     }
 
     let user_option = get_user_from_headers(req.headers(), &**pool).await.ok();
+
+    if let Some(data) = mod_data {
+        let mut authorized = !data.status.is_hidden();
+
+        if let Some(user) = user_option {
+            if !authorized {
+                if user.role.is_mod() {
+                    authorized = true;
+                } else {
+                    let user_id: database::models::ids::UserId = user.id.into();
+
+                    let mod_exists = sqlx::query!(
+                        "SELECT EXISTS(SELECT 1 FROM team_members WHERE team_id = $1 AND user_id = $2)",
+                        data.inner.team_id as database::models::ids::TeamId,
+                        user_id as database::models::ids::UserId,
+                    )
+                    .fetch_one(&**pool)
+                    .await
+                    .map_err(|e| ApiError::DatabaseError(e.into()))?
+                    .exists;
+
+                    authorized = mod_exists.unwrap_or(false);
+                }
+            }
+        }
+
+        if authorized {
+            return Ok(HttpResponse::Ok().json(convert_mod(data)));
+        }
+
+        Ok(HttpResponse::NotFound().body(""))
+    } else {
+        Ok(HttpResponse::NotFound().body(""))
+    }
+}
+
+#[get("random_mod")]
+pub async fn mod_get_random(
+    req: HttpRequest,
+    pool: web::Data<PgPool>,
+) -> Result<HttpResponse, ApiError> {
+    let mod_data;
+
+    let mut rng = rand::thread_rng();
+
+    let user_option = get_user_from_headers(req.headers(), &**pool).await.ok();
+    let mut allow_nsfw = false;
+
+    if let Some(user) = &user_option {
+        if user.show_nsfw {
+            allow_nsfw = true;
+        }
+    }
+
+    let mod_count;
+
+    if !allow_nsfw {
+        mod_count = sqlx::query!(
+            "SELECT COUNT(*) FROM mods WHERE is_nsfw = false"
+        )
+        .fetch_one(&**pool)
+        .await
+        .map_err(|e| ApiError::DatabaseError(e.into()))?
+        .count;
+    }
+    else {
+        mod_count = sqlx::query!(
+            "SELECT COUNT(*) FROM mods"
+        )
+        .fetch_one(&**pool)
+        .await
+        .map_err(|e| ApiError::DatabaseError(e.into()))?
+        .count;
+    }
+
+    let rand_id = rng.gen_range(1..=mod_count.unwrap());
+
+    let result;
+
+    if allow_nsfw {
+        result = sqlx::query!(
+            "SELECT x.id id FROM 
+                ( 
+                    SELECT id, ROW_NUMBER() OVER (ORDER BY published) 
+                    FROM mods
+                    WHERE status = 1
+                    AND is_nsfw IS NOT NULL
+                ) x 
+            WHERE ROW_NUMBER = $1",
+            rand_id
+        )
+        .fetch_one(&**pool)
+        .await
+        .map_err(|e| ApiError::DatabaseError(e.into()))?
+        .id;
+    }
+    else {
+        result = sqlx::query!(
+            "SELECT x.id id FROM 
+                ( 
+                    SELECT id, ROW_NUMBER() OVER (ORDER BY published) 
+                    FROM mods
+                    WHERE status = 1
+                    AND is_nsfw IS FALSE
+                ) x 
+            WHERE ROW_NUMBER = $1",
+            rand_id
+        )
+        .fetch_one(&**pool)
+        .await
+        .map_err(|e| ApiError::DatabaseError(e.into()))?
+        .id;
+    }
+
+    let mod_id = ModId(result as u64);
+
+    let id_option: Option<ModId> = serde_json::from_str(&*format!("\"{}\"", mod_id)).ok();
+
+    if let Some(id) = id_option {
+        mod_data = database::models::Mod::get_full(id.into(), &**pool)
+            .await
+            .map_err(|e| ApiError::DatabaseError(e.into()))?
+    }
+    else {
+        mod_data = None;
+    }
 
     if let Some(data) = mod_data {
         let mut authorized = !data.status.is_hidden();

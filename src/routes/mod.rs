@@ -25,6 +25,7 @@ pub fn mods_config(cfg: &mut web::ServiceConfig) {
     cfg.service(mods::mod_search);
     cfg.service(mods::mods_get);
     cfg.service(mod_creation::mod_create);
+    cfg.service(mods::mod_get_random);
 
     cfg.service(
         web::scope("mod")
