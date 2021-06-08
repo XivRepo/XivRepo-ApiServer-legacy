@@ -1854,6 +1854,19 @@
       ]
     }
   },
+  "6405f9daeef302ef78930c64d28830896072ff7655b863b60a0b47a467f80672": {
+    "query": "\n                    UPDATE mods\n                    SET is_nsfw = $1\n                    WHERE (id = $2)\n                    ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Int8"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "655b2b58f918d4d7fe4617eab9ce1aaee8c389ee6186d88a0d4c5764ab82a19b": {
     "query": "\n        SELECT m.id, m.title, m.description, m.downloads, m.follows, m.icon_url, m.body_url, m.published, m.updated, m.team_id, m.slug, m.is_nsfw\n        FROM mods m\n        WHERE id = $1\n        ",
     "describe": {
