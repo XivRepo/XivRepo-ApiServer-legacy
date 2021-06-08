@@ -398,6 +398,7 @@ pub struct EditMod {
         with = "::serde_with::rust::double_option"
     )]
     pub slug: Option<Option<String>>,
+    pub is_nsfw: Option<bool>,
 }
 
 #[patch("{id}")]
@@ -836,6 +837,28 @@ pub async fn mod_edit(
                     WHERE (id = $2)
                     ",
                     body,
+                    id as database::models::ids::ModId,
+                )
+                .execute(&mut *transaction)
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.into()))?;
+            }
+
+
+            if let Some(is_nsfw) = &new_mod.is_nsfw {
+                if !perms.contains(Permissions::EDIT_DETAILS) {
+                    return Err(ApiError::CustomAuthenticationError(
+                        "You do not have the permissions to edit the sfw status of this mod!".to_string(),
+                    ));
+                }
+
+                sqlx::query!(
+                    "
+                    UPDATE mods
+                    SET is_nsfw = $1
+                    WHERE (id = $2)
+                    ",
+                    is_nsfw,
                     id as database::models::ids::ModId,
                 )
                 .execute(&mut *transaction)
