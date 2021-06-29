@@ -10,7 +10,7 @@ pub struct VersionBuilder {
     pub version_number: String,
     pub changelog: String,
     pub files: Vec<VersionFileBuilder>,
-    pub dependencies: Vec<(VersionId, String)>,
+    pub dependencies: Vec<(ModId, String)>,
     pub release_channel: ChannelId,
     pub featured: bool,
 }
@@ -111,7 +111,7 @@ impl VersionBuilder {
                 VALUES ($1, $2, $3)
                 ",
                 self.version_id as VersionId,
-                dependency.0 as VersionId,
+                dependency.0.0,
                 dependency.1,
             )
             .execute(&mut *transaction)
@@ -448,6 +448,8 @@ impl Version {
     where
         E: sqlx::Executor<'a, Database = sqlx::Postgres> + Copy,
     {
+        // FIXME: Need to update this query to include the optional minimum version number
+        // for dependencies, and possibly change the type of dependency_id
         let result = sqlx::query!(
             "
             SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,
@@ -519,8 +521,13 @@ impl Version {
 
                     if dependency.len() >= 2 {
                         dependencies.push((
-                            VersionId(dependency[0].parse().unwrap_or(0)),
+                            ModId(dependency[0].parse().unwrap_or(0)),
                             dependency[1].to_string(),
+                            if dependency[2].is_empty() {
+                                Some(String::from(dependency[2]))
+                            } else {
+                                None
+                            }
                         ))
                     }
                 });
@@ -621,7 +628,15 @@ impl Version {
                         let dependency: Vec<&str> = f.split(", ").collect();
 
                         if dependency.len() >= 2 {
-                            dependencies.push((VersionId(dependency[0].parse().unwrap_or(0)), dependency[1].to_string()))
+                            dependencies.push((
+                                ModId(dependency[0].parse().unwrap_or(0)),
+                                dependency[1].to_string(),
+                                if dependency[2].is_empty() {
+                                    Some(String::from(dependency[2]))
+                                } else {
+                                    None
+                                }
+                            ))
                         }
                     });
 
@@ -681,7 +696,7 @@ pub struct QueryVersion {
     pub release_channel: String,
     pub files: Vec<QueryFile>,
     pub featured: bool,
-    pub dependencies: Vec<(VersionId, String)>,
+    pub dependencies: Vec<(ModId, String, Option<String>)>,
 }
 
 #[derive(Clone)]

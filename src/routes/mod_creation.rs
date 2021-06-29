@@ -588,7 +588,7 @@ async fn create_initial_version(
     let dependencies = version_data
         .dependencies
         .iter()
-        .map(|x| ((x.version_id).into(), x.dependency_type.to_string()))
+        .map(|x| (crate::database::models::ModId::from(x.mod_id), x.dependency_type.to_string()))
         .collect::<Vec<_>>();
 
     let version = models::version_item::VersionBuilder {

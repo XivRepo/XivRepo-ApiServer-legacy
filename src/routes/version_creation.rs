@@ -198,7 +198,7 @@ async fn version_create_inner(
             let dependencies = version_create_data
                 .dependencies
                 .iter()
-                .map(|x| ((x.version_id).into(), x.dependency_type.to_string()))
+                .map(|x| ((x.mod_id).into(), x.dependency_type.to_string()))
                 .collect::<Vec<_>>();
 
             version_builder = Some(VersionBuilder {

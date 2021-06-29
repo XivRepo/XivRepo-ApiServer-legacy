@@ -168,7 +168,6 @@ pub struct NotificationId(pub i64);
 pub struct NotificationActionId(pub i32);
 
 use crate::models::ids;
-
 impl From<ids::ModId> for ModId {
     fn from(id: ids::ModId) -> Self {
         ModId(id.0 as i64)

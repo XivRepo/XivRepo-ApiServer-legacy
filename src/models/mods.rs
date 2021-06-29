@@ -165,7 +165,6 @@ pub struct Version {
     pub files: Vec<VersionFile>,
     /// A list of mods that this version depends on.
     pub dependencies: Vec<Dependency>,
-
 }
 
 /// A single mod file, with a url for the file and the file's hash
@@ -182,14 +181,16 @@ pub struct VersionFile {
     pub primary: bool,
 }
 
-/// A dependency which describes what versions are required, break support, or are optional to the
-/// version's functionality
+/// A dependency is another mod is either `Required`, `Optional`, or `Incompatible` (breaks usage)
+/// to the mod's functionality
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Dependency {
     /// The filename of the file.
-    pub version_id: VersionId,
+    pub mod_id: ModId,
     /// Whether the file is the primary file of a version
     pub dependency_type: DependencyType,
+    /// Optional minimum version number
+    pub min_version_num: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
