@@ -517,6 +517,7 @@ async fn mod_create_inner(
             is_nsfw: mod_create_data.is_nsfw,
             slug: mod_create_data.mod_slug.unwrap(),
             donation_urls,
+            dependencies: None
         };
 
         let now = chrono::Utc::now();
@@ -547,6 +548,7 @@ async fn mod_create_inner(
             wiki_url: mod_builder.wiki_url.clone(),
             discord_url: mod_builder.discord_url.clone(),
             donation_urls: mod_create_data.donation_urls.clone(),
+            dependencies: mod_builder.dependencies.clone(),
         };
 
         let _mod_id = mod_builder.insert(&mut *transaction).await?;

@@ -63,6 +63,8 @@ pub struct Mod {
     pub discord_url: Option<String>,
     /// An optional list of all donation links the mod has
     pub donation_urls: Option<Vec<DonationLink>>,
+    /// A list of dependencies
+    pub dependencies: Option<Vec<Dependency>>,
 }
 
 
@@ -192,6 +194,11 @@ pub struct Dependency {
     /// Optional minimum version number
     pub min_version_num: Option<String>,
 }
+
+#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "Base62Id")]
+#[serde(into = "Base62Id")]
+pub struct DependencyId(pub u64);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]

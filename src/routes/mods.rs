@@ -2,7 +2,7 @@ use crate::auth::get_user_from_headers;
 use crate::database;
 use crate::file_hosting::FileHost;
 use crate::models;
-use crate::models::mods::{DonationLink, ModId, ModStatus, SearchRequest};
+use crate::models::mods::{DonationLink, ModId, ModStatus, SearchRequest, Dependency, DependencyType};
 use crate::models::teams::Permissions;
 use crate::routes::ApiError;
 use crate::search::indexing::queue::CreationQueue;
@@ -356,6 +356,19 @@ pub fn convert_mod(data: database::models::mod_item::QueryMod) -> models::mods::
                 })
                 .collect(),
         ),
+        dependencies: if data.dependencies.is_empty() {
+            None
+        } else {
+            // Probably find a more precise way to create the Dependency objects
+            Some(
+                data.dependencies.iter().map(
+                    |dep_id| Dependency {
+                        mod_id: ModId(dep_id.as_str().parse::<u64>().unwrap_or_default()), // add better error checking?
+                        dependency_type: DependencyType::Required,
+                        min_version_num: None
+                    }).collect()
+            )
+        },
     }
 }
 
