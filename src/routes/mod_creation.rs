@@ -44,8 +44,6 @@ pub enum CreateError {
     InvalidCategory(String),
     #[error("Invalid file type for version file: {0}")]
     InvalidFileType(String),
-    #[error("Slug collides with other mod's id!")]
-    SlugCollision,
     #[error("Authentication Error: {0}")]
     Unauthorized(#[from] AuthenticationError),
     #[error("Authentication Error: {0}")]
@@ -69,7 +67,6 @@ impl actix_web::ResponseError for CreateError {
             CreateError::InvalidFileType(..) => StatusCode::BAD_REQUEST,
             CreateError::Unauthorized(..) => StatusCode::UNAUTHORIZED,
             CreateError::CustomAuthenticationError(..) => StatusCode::UNAUTHORIZED,
-            CreateError::SlugCollision => StatusCode::BAD_REQUEST,
         }
     }
 
@@ -90,7 +87,6 @@ impl actix_web::ResponseError for CreateError {
                 CreateError::InvalidFileType(..) => "invalid_input",
                 CreateError::Unauthorized(..) => "unauthorized",
                 CreateError::CustomAuthenticationError(..) => "unauthorized",
-                CreateError::SlugCollision => "invalid_input",
             },
             description: &self.to_string(),
         })
@@ -326,39 +322,41 @@ async fn mod_create_inner(
             info!("Mod Slug is none. Converting {} to {}", &create_data.mod_name, slugify!(&create_data.mod_name));
         }
 
-        let slug_modid_option: Option<ModId> =
-            serde_json::from_str(&*format!("\"{}\"", &create_data.mod_slug.clone().unwrap())).ok();
-        if let Some(slug_modid) = slug_modid_option {
-            let slug_modid: models::ids::ModId = slug_modid.into();
-            let results = sqlx::query!(
-                "
-                SELECT COUNT(slug) FROM mods WHERE id=$1
-                ",
-                slug_modid as models::ids::ModId
-            )
-            .fetch_one(&mut *transaction)
-            .await
-            .map_err(|e| CreateError::DatabaseError(e.into()))?;
+        let mut safe_slug = create_data.mod_slug.clone().unwrap();
+        let slug_count = sqlx::query!(
+            "
+            SELECT COUNT(id) as count FROM mods WHERE slug LIKE $1
+            ",
+            format!("{}%", safe_slug)
+        )
+        .fetch_one(&mut *transaction)
+        .await?;
 
-            warn!("{:?}", &results);
+        warn!("{}",&slug_count.count.clone().unwrap());
 
-            let count = results.count.unwrap_or(0);
-            if count > 1 {
-                return Err(CreateError::SlugCollision);
-                
-            }
+        if slug_count.count.unwrap_or(0) > 0 {
+            let slug_iter: i64 = slug_count.count.unwrap();
+
+            safe_slug = format!("{}-{}", safe_slug, slug_iter.to_string());
         }
+
+        warn!("{}",&safe_slug);
+
+        create_data.mod_slug = Some(safe_slug);
 
         // Create VersionBuilders for the versions specified in `initial_versions`
         versions = Vec::with_capacity(create_data.initial_versions.len());
         for (i, data) in create_data.initial_versions.iter().enumerate() {
             // Create a map of multipart field names to version indices
-            for name in &data.file_parts {
-                if versions_map.insert(name.to_owned(), i).is_some() {
-                    // If the name is already used
-                    return Err(CreateError::InvalidInput(String::from(
-                        "Duplicate multipart field name",
-                    )));
+            if data.file_parts.is_some() {
+                let parts = &data.file_parts;
+                for name in parts.clone().unwrap() {
+                    if versions_map.insert(name.to_owned(), i).is_some() {
+                        // If the name is already used
+                        return Err(CreateError::InvalidInput(String::from(
+                            "Duplicate multipart field name",
+                        )));
+                    }
                 }
             }
             versions
@@ -437,10 +435,12 @@ async fn mod_create_inner(
         // Check to make sure that all specified files were uploaded
         for (version_data, builder) in mod_create_data.initial_versions.iter().zip(versions.iter())
         {
-            if version_data.file_parts.len() != builder.files.len() {
-                return Err(CreateError::InvalidInput(String::from(
-                    "Some files were specified in initial_versions but not uploaded",
-                )));
+            if version_data.file_parts.is_some() {
+                if version_data.file_parts.as_deref().unwrap().len() != builder.files.len() {
+                    return Err(CreateError::InvalidInput(String::from(
+                        "Some files were specified in initial_versions but not uploaded",
+                    )));
+                }
             }
         }
 
@@ -604,7 +604,9 @@ async fn create_initial_version(
         files: Vec::new(),
         dependencies,
         release_channel,
+        external_url: version_data.external_url.clone(),
         featured: version_data.featured,
+        hosting_location: version_data.hosting_location.clone(),
     };
 
     Ok(version)
@@ -624,9 +626,9 @@ async fn process_icon_upload(
             data.extend_from_slice(&chunk.map_err(CreateError::MultipartError)?);
         }
 
-        if data.len() >= 262144 {
+        if data.len() >= 1048576 {
             return Err(CreateError::InvalidInput(String::from(
-                "Icons must be smaller than 256KiB",
+                "Icons can not be larger than 1MiB",
             )));
         }
 

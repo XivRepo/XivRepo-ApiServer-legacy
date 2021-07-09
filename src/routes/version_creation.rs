@@ -4,7 +4,7 @@ use crate::database::models::notification_item::NotificationBuilder;
 use crate::database::models::version_item::{VersionBuilder, VersionFileBuilder};
 use crate::file_hosting::FileHost;
 use crate::models::mods::{
-    Dependency, ModId, Version, VersionFile, VersionId, VersionType,
+    Dependency, ModId, Version, VersionFile, VersionId, VersionType
 };
 use crate::models::teams::Permissions;
 use crate::routes::mod_creation::{CreateError, UploadedFile};
@@ -18,13 +18,15 @@ use sqlx::postgres::PgPool;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct InitialVersionData {
     pub mod_id: Option<ModId>,
-    pub file_parts: Vec<String>,
+    pub file_parts: Option<Vec<String>>,
     pub version_number: String,
     pub version_title: String,
     pub version_body: Option<String>,
+    pub external_url: Option<String>,
     pub dependencies: Vec<Dependency>,
     pub release_channel: VersionType,
     pub featured: bool,
+    pub hosting_location: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -45,10 +47,13 @@ pub fn check_version(version: &InitialVersionData) -> Result<(), CreateError> {
     */
     use super::mod_creation::check_length;
 
-    version
-        .file_parts
-        .iter()
-        .try_for_each(|f| check_length(1..=256, "file part name", f))?;
+    if version.file_parts.is_some() {
+        version
+            .file_parts.clone()
+            .unwrap()
+            .iter()
+            .try_for_each(|f| check_length(1..=256, "file part name", f))?;
+    }
 
     check_length(1..=64, "version number", &version.version_number)?;
     check_length(3..=256, "version title", &version.version_title)?;
@@ -214,7 +219,9 @@ async fn version_create_inner(
                 files: Vec::new(),
                 dependencies,
                 release_channel,
+                external_url: version_create_data.external_url.clone(),
                 featured: version_create_data.featured,
+                hosting_location: version_create_data.hosting_location.clone(),
             });
 
             continue;
@@ -224,19 +231,21 @@ async fn version_create_inner(
             CreateError::InvalidInput(String::from("`data` field must come before file fields"))
         })?;
 
-        let file_builder = upload_file(
-            &mut field,
-            file_host,
-            uploaded_files,
-            &cdn_url,
-            &content_disposition,
-            version.mod_id.into(),
-            &version.version_number,
-        )
-        .await?;
+        if uploaded_files.len() > 0 {
+            let file_builder = upload_file(
+                &mut field,
+                file_host,
+                uploaded_files,
+                &cdn_url,
+                &content_disposition,
+                version.mod_id.into(),
+                &version.version_number,
+            )
+            .await?;
 
-        // Add the newly uploaded file to the existing or new version
-        version.files.push(file_builder);
+            // Add the newly uploaded file to the existing or new version
+            version.files.push(file_builder);
+        }
     }
 
     let version_data = initial_version_data
@@ -299,6 +308,8 @@ async fn version_create_inner(
         date_published: chrono::Utc::now(),
         downloads: 0,
         version_type: version_data.release_channel,
+        external_url: version_data.external_url,
+        hosting_location: version_data.hosting_location.clone(),
         files: builder
             .files
             .iter()

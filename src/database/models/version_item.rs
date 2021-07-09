@@ -13,6 +13,8 @@ pub struct VersionBuilder {
     pub dependencies: Vec<(VersionId, String)>,
     pub release_channel: ChannelId,
     pub featured: bool,
+    pub external_url: Option<String>,
+    pub hosting_location: String,
 }
 
 #[derive(Debug)]
@@ -85,6 +87,8 @@ impl VersionBuilder {
             downloads: 0,
             release_channel: self.release_channel,
             featured: self.featured,
+            external_url: self.external_url,
+            hosting_location: self.hosting_location,
         };
 
         version.insert(&mut *transaction).await?;
@@ -134,6 +138,8 @@ pub struct Version {
     pub downloads: i32,
     pub release_channel: ChannelId,
     pub featured: bool,
+    pub external_url: Option<String>,
+    pub hosting_location: String,
 }
 
 impl Version {
@@ -146,13 +152,13 @@ impl Version {
             INSERT INTO versions (
                 id, mod_id, author_id, name, version_number,
                 changelog, changelog_url, date_published,
-                downloads, release_channel, featured
+                downloads, release_channel, featured, external_url
             )
             VALUES (
                 $1, $2, $3, $4, $5,
                 $6, $7,
                 $8, $9,
-                $10, $11
+                $10, $11, $12
             )
             ",
             self.id as VersionId,
@@ -165,7 +171,8 @@ impl Version {
             self.date_published,
             self.downloads,
             self.release_channel as ChannelId,
-            self.featured
+            self.featured,
+            self.external_url
         )
         .execute(&mut *transaction)
         .await?;
@@ -371,7 +378,7 @@ impl Version {
             "
             SELECT v.mod_id, v.author_id, v.name, v.version_number,
                 v.changelog, v.changelog_url, v.date_published, v.downloads,
-                v.release_channel, v.featured
+                v.release_channel, v.featured, v.external_url, v.hosting_location
             FROM versions v
             WHERE v.id = $1
             ",
@@ -393,6 +400,8 @@ impl Version {
                 downloads: row.downloads,
                 release_channel: ChannelId(row.release_channel),
                 featured: row.featured,
+                external_url: row.external_url,
+                hosting_location: row.hosting_location,
             }))
         } else {
             Ok(None)
@@ -413,7 +422,7 @@ impl Version {
             "
             SELECT v.id, v.mod_id, v.author_id, v.name, v.version_number,
                 v.changelog, v.changelog_url, v.date_published, v.downloads,
-                v.release_channel, v.featured
+                v.release_channel, v.featured, v.external_url, v.hosting_location
             FROM versions v
             WHERE v.id IN (SELECT * FROM UNNEST($1::bigint[]))
             ",
@@ -433,6 +442,8 @@ impl Version {
                 downloads: v.downloads,
                 release_channel: ChannelId(v.release_channel),
                 featured: v.featured,
+                external_url: v.external_url,
+                hosting_location: v.hosting_location,
             }))
         })
         .try_collect::<Vec<Version>>()
@@ -452,7 +463,7 @@ impl Version {
             "
             SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,
             v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,
-            rc.channel release_channel, v.featured featured,
+            rc.channel release_channel, v.featured featured, v.external_url, v.hosting_location,
             STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,
             STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,
             STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies
@@ -486,28 +497,30 @@ impl Version {
 
             let mut files = Vec::new();
 
-            v.files.unwrap_or_default().split(" ,").for_each(|f| {
-                let file: Vec<&str> = f.split(", ").collect();
+            if v.external_url.is_some() {
+                v.files.unwrap_or_default().split(" ,").for_each(|f| {
+                    let file: Vec<&str> = f.split(", ").collect();
 
-                if file.len() >= 4 {
-                    let file_id = FileId(file[0].parse().unwrap_or(0));
-                    let mut file_hashes = HashMap::new();
+                    if file.len() >= 4 {
+                        let file_id = FileId(file[0].parse().unwrap_or(0));
+                        let mut file_hashes = HashMap::new();
 
-                    for hash in &hashes {
-                        if (hash.0).0 == file_id.0 {
-                            file_hashes.insert(hash.1.clone(), hash.2.clone());
+                        for hash in &hashes {
+                            if (hash.0).0 == file_id.0 {
+                                file_hashes.insert(hash.1.clone(), hash.2.clone());
+                            }
                         }
-                    }
 
-                    files.push(QueryFile {
-                        id: file_id,
-                        url: file[3].to_string(),
-                        filename: file[1].to_string(),
-                        hashes: file_hashes,
-                        primary: file[2].parse().unwrap_or(false),
-                    })
-                }
-            });
+                        files.push(QueryFile {
+                            id: file_id,
+                            url: file[3].to_string(),
+                            filename: file[1].to_string(),
+                            hashes: file_hashes,
+                            primary: file[2].parse().unwrap_or(false),
+                        })
+                    }
+                });
+            }
 
             let mut dependencies = Vec::new();
 
@@ -536,6 +549,8 @@ impl Version {
                 date_published: v.date_published,
                 downloads: v.downloads,
                 release_channel: v.release_channel,
+                external_url: v.external_url,
+                hosting_location: v.hosting_location,
                 files,
                 featured: v.featured,
                 dependencies,
@@ -559,7 +574,7 @@ impl Version {
             "
             SELECT v.id id, v.mod_id mod_id, v.author_id author_id, v.name version_name, v.version_number version_number,
             v.changelog changelog, v.changelog_url changelog_url, v.date_published date_published, v.downloads downloads,
-            rc.channel release_channel, v.featured featured,
+            rc.channel release_channel, v.featured featured, v.external_url, v.hosting_location,
             STRING_AGG(DISTINCT f.id || ', ' || f.filename || ', ' || f.is_primary || ', ' || f.url, ' ,') files,
             STRING_AGG(DISTINCT h.algorithm || ', ' || encode(h.hash, 'escape') || ', ' || h.file_id,  ' ,') hashes,
             STRING_AGG(DISTINCT d.dependency_id || ', ' || d.dependency_type,  ' ,') dependencies
@@ -635,6 +650,8 @@ impl Version {
                         changelog_url: v.changelog_url,
                         date_published: v.date_published,
                         downloads: v.downloads,
+                        external_url: v.external_url,
+                        hosting_location: v.hosting_location,
                         release_channel: v.release_channel,
                         files,
                         featured: v.featured,
@@ -677,7 +694,8 @@ pub struct QueryVersion {
     pub changelog_url: Option<String>,
     pub date_published: chrono::DateTime<chrono::Utc>,
     pub downloads: i32,
-
+    pub external_url: Option<String>,
+    pub hosting_location: String,
     pub release_channel: String,
     pub files: Vec<QueryFile>,
     pub featured: bool,
