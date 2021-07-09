@@ -75,7 +75,7 @@ pub struct DonationLink {
     pub url: String,
 }
 
-/// A status decides the visbility of a mod in search, URLs, and the whole site itself.
+/// A status decides the visibility of a mod in search, URLs, and the whole site itself.
 /// Approved - Mod is displayed on search, and accessible by URL
 /// Rejected - Mod is not displayed on search, and not accessible by URL (Temporary state, mod can reapply)
 /// Draft - Mod is not displayed on search, and not accessible by URL

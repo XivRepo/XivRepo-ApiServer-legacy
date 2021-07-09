@@ -3,6 +3,7 @@ use crate::database;
 use crate::file_hosting::FileHost;
 use crate::models;
 use crate::models::mods::{DonationLink, ModId, ModStatus, SearchRequest, Dependency, DependencyType};
+use crate::models::ids::base62_impl::{parse_base62};
 use crate::models::teams::Permissions;
 use crate::routes::ApiError;
 use crate::search::indexing::queue::CreationQueue;
@@ -14,6 +15,8 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::sync::Arc;
+use log::info;
+use crate::database::models::generate_dependency_id;
 
 #[get("mod")]
 pub async fn mod_search(
@@ -359,11 +362,11 @@ pub fn convert_mod(data: database::models::mod_item::QueryMod) -> models::mods::
         dependencies: if data.dependencies.is_empty() {
             None
         } else {
-            // Probably find a more precise way to create the Dependency objects
+            // Probably find a better way to create the Dependency objects. This currently guesses the dep type and min version
             Some(
                 data.dependencies.iter().map(
                     |dep_id| Dependency {
-                        mod_id: ModId(dep_id.as_str().parse::<u64>().unwrap_or_default()), // add better error checking?
+                        mod_id: ModId(dep_id.as_str().parse::<u64>().unwrap_or_default()),
                         dependency_type: DependencyType::Required,
                         min_version_num: None
                     }).collect()
@@ -412,6 +415,7 @@ pub struct EditMod {
     )]
     pub slug: Option<Option<String>>,
     pub is_nsfw: Option<bool>,
+    pub dependencies: Option<Vec<String>>,
 }
 
 #[patch("{id}")]
@@ -877,6 +881,45 @@ pub async fn mod_edit(
                 .execute(&mut *transaction)
                 .await
                 .map_err(|e| ApiError::DatabaseError(e.into()))?;
+            }
+
+            let default_vec: Vec<String> = Vec::new(); // apparently you can't specify the type of a new vec when creating it in unwrap_or()
+            let new_mod_deps = new_mod.dependencies.as_ref().unwrap_or(&default_vec);
+            if !new_mod_deps.is_empty() {
+                if !perms.contains(Permissions::EDIT_DETAILS) { // is this the right permission?
+                    return Err(ApiError::CustomAuthenticationError(
+                        "You do not have the permissions to edit the dependencies of this mod!".to_string(),
+                    ))
+                }
+
+                sqlx::query!(
+                    "
+                    DELETE FROM dependencies
+                    WHERE dependent_id = $1
+                    ",
+                    id as database::models::ids::ModId,
+                )
+                .execute(&mut *transaction)
+                .await
+                .map_err(|e| ApiError::DatabaseError(e.into()))?;
+
+                for dep_mod_id in new_mod_deps {
+                    let b62 = parse_base62(dep_mod_id.as_str()).unwrap() as i64;
+                    let table_id = generate_dependency_id(&mut transaction).await?;
+                    sqlx::query!(
+                        "
+                        INSERT INTO dependencies (id, dependency_type, dependent_id, dependency_id)
+                        VALUES ($1, $2, $3, $4)
+                        ",
+                        table_id.0,
+                        DependencyType::Required.as_str(),
+                        id.0 as i64,
+                        b62,
+                    )
+                    .execute(&mut *transaction)
+                    .await
+                    .map_err(|e| ApiError::DatabaseError(e.into()))?;
+                }
             }
 
             transaction

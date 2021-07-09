@@ -2,7 +2,7 @@ use crate::auth::{get_user_from_headers, AuthenticationError};
 use crate::database::models;
 use crate::file_hosting::{FileHost, FileHostingError};
 use crate::models::error::ApiError;
-use crate::models::mods::{DonationLink, ModId, ModStatus, VersionId};
+use crate::models::mods::{DonationLink, ModId, ModStatus, VersionId, Dependency, DependencyType};
 use crate::models::users::UserId;
 use crate::routes::version_creation::InitialVersionData;
 use crate::search::indexing::{queue::CreationQueue, IndexingError};
@@ -17,6 +17,9 @@ use sqlx::postgres::PgPool;
 use std::sync::Arc;
 use thiserror::Error;
 use slugify::slugify;
+use crate::models::ids::base62_impl::parse_base62;
+use crate::database::models::generate_dependency_id;
+use crate::routes::mod_creation::CreateError::DatabaseError;
 
 #[derive(Error, Debug)]
 pub enum CreateError {
@@ -125,6 +128,8 @@ struct ModCreateData {
     pub is_draft: Option<bool>,
     /// An optional list of all donation links the mod has
     pub donation_urls: Option<Vec<DonationLink>>,
+    /// A list of dependencies that the mod has
+    pub dependencies: Option<Vec<String>>,
 }
 
 pub struct UploadedFile {
@@ -231,6 +236,7 @@ async fn mod_create_inner(
     let mod_create_data;
     let mut versions;
     let mut versions_map = std::collections::HashMap::new();
+    let mut dependencies_vec = Vec::new();
 
     {
         // The first multipart field must be named "data" and contain a
@@ -263,6 +269,9 @@ async fn mod_create_inner(
         while let Some(chunk) = field.next().await {
             data.extend_from_slice(&chunk.map_err(CreateError::MultipartError)?);
         }
+
+        //info!("data:\n{:?}", &data);
+
         let mut create_data: ModCreateData = serde_json::from_slice(&data)?;
 
         {
@@ -363,6 +372,16 @@ async fn mod_create_inner(
             }
             versions
                 .push(create_initial_version(data, mod_id, current_user.id, transaction).await?);
+        }
+
+        if let Some(deps) = &create_data.dependencies {
+            for dep in deps {
+                dependencies_vec.push(Dependency {
+                    mod_id: ModId(dep.parse::<u64>().unwrap()),
+                    dependency_type: DependencyType::Required,
+                    min_version_num: None
+                });
+            }
         }
 
         mod_create_data = create_data;
@@ -517,7 +536,11 @@ async fn mod_create_inner(
             is_nsfw: mod_create_data.is_nsfw,
             slug: mod_create_data.mod_slug.unwrap(),
             donation_urls,
-            dependencies: None
+            dependencies: if dependencies_vec.is_empty() {
+                None
+            } else {
+                Some(dependencies_vec)
+            },
         };
 
         let now = chrono::Utc::now();

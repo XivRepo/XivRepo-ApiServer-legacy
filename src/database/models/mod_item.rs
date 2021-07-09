@@ -1,6 +1,6 @@
 use super::ids::*;
+use crate::models::ids::base62_impl::parse_base62;
 use crate::models::mods::Dependency;
-use sqlx::{Transaction, Postgres};
 
 #[derive(Debug)]
 pub struct DonationUrl {
@@ -107,18 +107,18 @@ impl ModBuilder {
         }
 
         if let Some(deps) = self.dependencies {
-            for dependency in deps {
-                let dependency_id = generate_dependency_id(&mut *transaction).await?;
+            for dep in deps {
+                let b62 = parse_base62(dep.mod_id.0.to_string().as_str()).unwrap() as i64;
+                let table_id = generate_dependency_id(&mut *transaction).await?;
                 sqlx::query!(
                     "
-                    INSERT INTO dependencies (id, dependency_type, dependent_id, dependency_id, version_id)
-                    VALUES ($1, $2, $3, $4, $5)
+                    INSERT INTO dependencies (id, dependency_type, dependent_id, dependency_id)
+                    VALUES ($1, $2, $3, $4)
                     ",
-                    dependency_id.0 as i32,
-                    dependency.dependency_type.as_str(),
-                    self.mod_id as ModId,
-                    dependency.mod_id.0 as i64,
-                    0, // i think we agreed to remove this?
+                    table_id.0 as i64,
+                    crate::models::mods::DependencyType::Required.as_str(),
+                    self.mod_id.0,
+                    b62,
                 )
                 .execute(&mut *transaction)
                 .await?;
