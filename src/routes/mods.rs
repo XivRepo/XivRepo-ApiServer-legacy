@@ -744,6 +744,7 @@ pub async fn mod_edit(
                     ));
                 }
 
+                let mut safe_slug = slug.clone().unwrap();
                 if let Some(slug) = slug {
                     if slug.len() > 64 || slug.len() < 3 {
                         return Err(ApiError::InvalidInputError(
@@ -765,10 +766,27 @@ pub async fn mod_edit(
                         .await
                         .map_err(|e| ApiError::DatabaseError(e.into()))?;
 
+                        let mut collided = false;
                         if results.exists.unwrap_or(true) {
-                            return Err(ApiError::InvalidInputError(
-                                "Slug collides with other mod's id!".to_string(),
-                            ));
+                            collided = true;
+                        }
+
+                        if collided {
+                            let slug_count = sqlx::query!(
+                                "
+                                SELECT COUNT(id) as count FROM mods WHERE slug LIKE $1
+                                ",
+                                format!("{}%", safe_slug)
+                            )
+                            .fetch_one(&mut *transaction)
+                            .await
+                            .map_err(|e| ApiError::DatabaseError(e.into()))?;
+
+                            if slug_count.count.unwrap() > 0 {
+                                let slug_iter: i64 = slug_count.count.unwrap();
+
+                                safe_slug = format!("{}-{}", safe_slug, slug_iter.to_string());
+                            }
                         }
                     }
                 }
@@ -779,7 +797,7 @@ pub async fn mod_edit(
                     SET slug = LOWER($1)
                     WHERE (id = $2)
                     ",
-                    slug.as_deref(),
+                    safe_slug,
                     id as database::models::ids::ModId,
                 )
                 .execute(&mut *transaction)

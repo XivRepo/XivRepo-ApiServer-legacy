@@ -10,6 +10,6 @@ INSERT INTO users (
     avatar_url, bio, created
 )
 VALUES (
-           127155982985829, 10137, 'Ghost', NULL, NULL,
-           'https://avatars2.githubusercontent.com/u/10137', 'A deleted user', NOW()
-       );
+    127155982985829, 10137, 'Ghost', NULL, NULL,
+    'https://avatars2.githubusercontent.com/u/10137', 'A deleted user', NOW()
+); 

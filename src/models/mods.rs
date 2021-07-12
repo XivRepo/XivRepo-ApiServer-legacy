@@ -162,7 +162,10 @@ pub struct Version {
     pub downloads: u32,
     /// The type of the release - `Alpha`, `Beta`, or `Release`.
     pub version_type: VersionType,
+    /// External URL for Version
+    pub external_url: Option<String>,
 
+    pub hosting_location: String,
     /// A list of files available for download for this version.
     pub files: Vec<VersionFile>,
     /// A list of mods that this version depends on.
@@ -228,6 +231,7 @@ impl VersionType {
         }
     }
 }
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]

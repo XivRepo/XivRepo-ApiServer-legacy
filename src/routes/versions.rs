@@ -127,6 +127,8 @@ fn convert_version(data: database::models::version_item::QueryVersion) -> models
         changelog_url: data.changelog_url,
         date_published: data.date_published,
         downloads: data.downloads as u32,
+        external_url: data.external_url,
+        hosting_location: data.hosting_location.clone(),
         version_type: match data.release_channel.as_str() {
             "release" => VersionType::Release,
             "beta" => VersionType::Beta,
