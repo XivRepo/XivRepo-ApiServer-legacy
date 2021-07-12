@@ -159,8 +159,9 @@ fn convert_version(data: database::models::version_item::QueryVersion) -> models
             .dependencies
             .into_iter()
             .map(|d| Dependency {
-                version_id: d.0.into(),
+                mod_id: d.0.into(),
                 dependency_type: DependencyType::from_str(&*d.1),
+                min_version_num: d.2,
             })
             .collect(),
     }
@@ -302,8 +303,8 @@ pub async fn version_edit(
                 .map_err(|e| ApiError::DatabaseError(e.into()))?;
 
                 for dependency in dependencies {
-                    let dependency_id: database::models::ids::VersionId =
-                        dependency.version_id.clone().into();
+                    let dependency_id: database::models::ids::ModId =
+                        dependency.mod_id.clone().into();
 
                     sqlx::query!(
                         "
@@ -311,7 +312,7 @@ pub async fn version_edit(
                         VALUES ($1, $2, $3)
                         ",
                         id as database::models::ids::VersionId,
-                        dependency_id as database::models::ids::VersionId,
+                        dependency_id as database::models::ids::ModId,
                         dependency.dependency_type.as_str()
                     )
                     .execute(&mut *transaction)

@@ -93,13 +93,19 @@ generate_ids!(
     "SELECT EXISTS(SELECT 1 FROM reports WHERE id=$1)",
     ReportId
 );
-
 generate_ids!(
     pub generate_notification_id,
     NotificationId,
     8,
     "SELECT EXISTS(SELECT 1 FROM notifications WHERE id=$1)",
     NotificationId
+);
+generate_ids!(
+    pub generate_dependency_id,
+    DependencyId,
+    8,
+    "SELECT EXISTS(SELECT 1 FROM dependencies WHERE id=$1)",
+    DependencyId
 );
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Type)]
@@ -168,8 +174,11 @@ pub struct NotificationId(pub i64);
 #[sqlx(transparent)]
 pub struct NotificationActionId(pub i32);
 
-use crate::models::ids;
+#[derive(Copy, Clone, Debug, Type)]
+#[sqlx(transparent)]
+pub struct DependencyId(pub i64);
 
+use crate::models::ids;
 impl From<ids::ModId> for ModId {
     fn from(id: ids::ModId) -> Self {
         ModId(id.0 as i64)
@@ -228,5 +237,15 @@ impl From<ids::NotificationId> for NotificationId {
 impl From<NotificationId> for ids::NotificationId {
     fn from(id: NotificationId) -> Self {
         ids::NotificationId(id.0 as u64)
+    }
+}
+impl From<ids::DependencyId> for DependencyId {
+    fn from(id: ids::DependencyId) -> Self {
+        DependencyId(id.0 as i64)
+    }
+}
+impl From<DependencyId> for ids::DependencyId {
+    fn from(id: DependencyId) -> Self {
+        ids::DependencyId(id.0 as u64)
     }
 }

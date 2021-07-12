@@ -1,4 +1,6 @@
 use super::ids::*;
+use crate::models::ids::base62_impl::parse_base62;
+use crate::models::mods::Dependency;
 
 #[derive(Debug)]
 pub struct DonationUrl {
@@ -51,6 +53,7 @@ pub struct ModBuilder {
     pub is_nsfw: bool,
     pub slug: String,
     pub donation_urls: Vec<DonationUrl>,
+    pub dependencies: Option<Vec<Dependency>>,
 }
 
 impl ModBuilder {
@@ -78,7 +81,7 @@ impl ModBuilder {
             discord_url: self.discord_url,
             slug: Some(self.slug),
         };
-        mod_struct.insert(&mut *transaction).await?;
+        mod_struct.insert(&mut *transaction).await?; // inserts all of the above values into the DB
 
         for mut version in self.initial_versions {
             version.mod_id = self.mod_id;
@@ -101,6 +104,25 @@ impl ModBuilder {
             )
             .execute(&mut *transaction)
             .await?;
+        }
+
+        if let Some(deps) = self.dependencies {
+            for dep in deps {
+                let b62 = parse_base62(dep.mod_id.0.to_string().as_str()).unwrap() as i64;
+                let table_id = generate_dependency_id(&mut *transaction).await?;
+                sqlx::query!(
+                    "
+                    INSERT INTO dependencies (id, dependency_type, dependent_id, dependency_id)
+                    VALUES ($1, $2, $3, $4)
+                    ",
+                    table_id.0 as i64,
+                    crate::models::mods::DependencyType::Required.as_str(),
+                    self.mod_id.0,
+                    b62,
+                )
+                .execute(&mut *transaction)
+                .await?;
+            }
         }
 
         Ok(self.mod_id)
@@ -162,7 +184,7 @@ impl Mod {
             self.status.0,
             self.discord_url.as_ref(),
             self.slug.as_ref(),
-            self.is_nsfw
+            self.is_nsfw,
         )
         .execute(&mut *transaction)
         .await?;
@@ -382,6 +404,16 @@ impl Mod {
         .execute(exec)
         .await?;
 
+        sqlx::query!(
+            "
+            DELETE FROM dependencies
+            WHERE dependent_id = $1 OR dependency_id = $1
+            ",
+            id as ModId,
+        )
+        .execute(exec)
+        .await?;
+
         Ok(Some(()))
     }
 
@@ -424,22 +456,24 @@ impl Mod {
             m.issues_url issues_url, m.source_url source_url, m.wiki_url wiki_url, m.discord_url discord_url,
             m.team_id team_id, m.slug slug,
             s.status status_name,
-            STRING_AGG(DISTINCT c.category, ',') categories, STRING_AGG(DISTINCT v.id::text, ',') versions
+            STRING_AGG(DISTINCT c.category, ',') categories, STRING_AGG(DISTINCT v.id::text, ',') versions,
+            STRING_AGG(DISTINCT d.dependent_id::text, ',') dependencies
             FROM mods m
             LEFT OUTER JOIN mods_categories mc ON joining_mod_id = m.id
             LEFT OUTER JOIN categories c ON mc.joining_category_id = c.id
             LEFT OUTER JOIN versions v ON v.mod_id = m.id
+            LEFT OUTER JOIN dependencies d ON d.dependent_id = m.id
             INNER JOIN statuses s ON s.id = m.status
             WHERE m.id = $1
             GROUP BY m.id, s.id;
             ",
             id as ModId,
         )
-            .fetch_optional(executor)
-            .await?;
+        .fetch_optional(executor)
+        .await?;
 
         if let Some(m) = result {
-            Ok(Some(QueryMod {
+            Ok(Some(QueryMod { // maybe refactor this? duplicated on line 556
                 inner: Mod {
                     id: ModId(m.id),
                     team_id: TeamId(m.team_id),
@@ -473,6 +507,7 @@ impl Mod {
                     .map(|x| VersionId(x.parse().unwrap_or_default()))
                     .collect(),
                 donation_urls: vec![],
+                dependencies: m.dependencies.unwrap_or_default().split(',').map(|x| x.to_string()).collect(),
                 status: crate::models::mods::ModStatus::from_str(&m.status_name),
             }))
         } else {
@@ -498,11 +533,13 @@ impl Mod {
             m.issues_url issues_url, m.source_url source_url, m.wiki_url wiki_url, m.discord_url discord_url,
             m.team_id team_id, m.slug slug,
             s.status status_name,
-            STRING_AGG(DISTINCT c.category, ',') categories, STRING_AGG(DISTINCT v.id::text, ',') versions
+            STRING_AGG(DISTINCT c.category, ',') categories, STRING_AGG(DISTINCT v.id::text, ',') versions,
+            STRING_AGG(DISTINCT d.dependent_id::text, ',') dependencies
             FROM mods m
             LEFT OUTER JOIN mods_categories mc ON joining_mod_id = m.id
             LEFT OUTER JOIN categories c ON mc.joining_category_id = c.id
             LEFT OUTER JOIN versions v ON v.mod_id = m.id
+            LEFT OUTER JOIN dependencies d ON d.dependent_id = m.id
             INNER JOIN statuses s ON s.id = m.status
             WHERE m.id IN (SELECT * FROM UNNEST($1::bigint[]))
             GROUP BY m.id, s.id;
@@ -511,7 +548,7 @@ impl Mod {
         )
             .fetch_many(exec)
             .try_filter_map(|e| async {
-                Ok(e.right().map(|m| QueryMod {
+                Ok(e.right().map(|m| QueryMod { // maybe refactor this? duplicated on line 475
                     inner: Mod {
                         id: ModId(m.id),
                         team_id: TeamId(m.team_id),
@@ -530,11 +567,12 @@ impl Mod {
                         is_nsfw: m.is_nsfw,
                         slug: m.slug.clone(),
                         body: m.body.clone(),
-                        follows: m.follows
+                        follows: m.follows,
                     },
                     categories: m.categories.unwrap_or_default().split(',').map(|x| x.to_string()).collect(),
                     versions: m.versions.unwrap_or_default().split(',').map(|x| VersionId(x.parse().unwrap_or_default())).collect(),
                     donation_urls: vec![],
+                    dependencies: m.dependencies.unwrap_or_default().split(',').map(|x| x.to_string()).collect(),
                     status: crate::models::mods::ModStatus::from_str(&m.status_name),
                 }))
             })
@@ -549,5 +587,6 @@ pub struct QueryMod {
     pub categories: Vec<String>,
     pub versions: Vec<VersionId>,
     pub donation_urls: Vec<DonationUrl>,
+    pub dependencies: Vec<String>, // Returns a list of mod ids for all of its dependencies
     pub status: crate::models::mods::ModStatus,
 }

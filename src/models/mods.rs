@@ -63,6 +63,8 @@ pub struct Mod {
     pub discord_url: Option<String>,
     /// An optional list of all donation links the mod has
     pub donation_urls: Option<Vec<DonationLink>>,
+    /// A list of dependencies
+    pub dependencies: Option<Vec<Dependency>>,
 }
 
 
@@ -73,7 +75,7 @@ pub struct DonationLink {
     pub url: String,
 }
 
-/// A status decides the visbility of a mod in search, URLs, and the whole site itself.
+/// A status decides the visibility of a mod in search, URLs, and the whole site itself.
 /// Approved - Mod is displayed on search, and accessible by URL
 /// Rejected - Mod is not displayed on search, and not accessible by URL (Temporary state, mod can reapply)
 /// Draft - Mod is not displayed on search, and not accessible by URL
@@ -168,7 +170,6 @@ pub struct Version {
     pub files: Vec<VersionFile>,
     /// A list of mods that this version depends on.
     pub dependencies: Vec<Dependency>,
-
 }
 
 /// A single mod file, with a url for the file and the file's hash
@@ -185,15 +186,22 @@ pub struct VersionFile {
     pub primary: bool,
 }
 
-/// A dependency which describes what versions are required, break support, or are optional to the
-/// version's functionality
+/// A dependency is another mod is either `Required`, `Optional`, or `Incompatible` (breaks usage)
+/// to the mod's functionality
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Dependency {
     /// The filename of the file.
-    pub version_id: VersionId,
+    pub mod_id: ModId,
     /// Whether the file is the primary file of a version
     pub dependency_type: DependencyType,
+    /// Optional minimum version number
+    pub min_version_num: Option<String>,
 }
+
+#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "Base62Id")]
+#[serde(into = "Base62Id")]
+pub struct DependencyId(pub u64);
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]

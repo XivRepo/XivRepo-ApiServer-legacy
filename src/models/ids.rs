@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-pub use super::mods::{ModId, VersionId};
+pub use super::mods::{ModId, VersionId, DependencyId};
 pub use super::notifications::NotificationId;
 pub use super::reports::ReportId;
 pub use super::teams::TeamId;
@@ -111,6 +111,7 @@ base62_id_impl!(VersionId, VersionId);
 base62_id_impl!(TeamId, TeamId);
 base62_id_impl!(ReportId, ReportId);
 base62_id_impl!(NotificationId, NotificationId);
+base62_id_impl!(DependencyId, DependencyId);
 
 pub mod base62_impl {
     use serde::de::{self, Deserializer, Visitor};
